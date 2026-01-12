@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* --- THEME VARIABLES --- */
+:root {
+  /* LIGHT MODE */
+  --primary: #6c5ce7;
+  --bg: #f8f9fd;
+  --card-bg: #ffffff;
+  --text-main: #2d3436;
+  --text-secondary: #636e72;
+  --input-bg: #f1f2f6;
+  --border: #dfe6e9;
+  --shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+}
+
+/* DARK MODE */
+[data-theme='dark'] {
+  --primary: #8e7ce6;    
+  --bg: #121212;         
+  --card-bg: #1e1e1e;    
+  --text-main: #ffffff;  
+  --text-secondary: #a0a0a0;
+  --input-bg: #2c2c2c;   
+  --border: #333333;
+  --shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+}
+
+/* --- GLOBAL RESET --- */
+body {
+  background-color: var(--bg);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- NAVBAR --- */
+.navbar {
+  background: var(--card-bg);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background 0.3s ease;
+}
+
+.nav-brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* --- 3-COLUMN LAYOUT (CONTROLS | CHART | HISTORY) --- */
+.dashboard-container {
+  max-width: 1500px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  display: grid;
+  /* Left(Fixed) | Center(Fluid) | Right(Fixed) */
+  grid-template-columns: 340px 1fr 380px; 
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* --- CARDS --- */
+.ui-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+  transition: background 0.3s ease;
+}
+
+/* --- COLUMN 1: CONTROLS (LEFT) --- */
+.balance-card {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: white !important;
+  text-align: center;
+  border: none;
+  padding: 2rem;
+}
+.balance-card h3, .balance-card h1 { color: white !important; }
+
+.expense-form-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+}
+
+.modern-input {
+  width: 100%; padding: 0.9rem;
+  background: var(--input-bg);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  outline: none; box-sizing: border-box;
+  transition: all 0.2s;
+}
+.modern-input:focus { border-color: var(--primary); background: var(--card-bg); }
+.modern-input::placeholder { color: var(--text-secondary); }
+
+.form-row { display: flex; gap: 0.8rem; }
+.form-row .modern-input { flex: 1; min-width: 0; }
+
+.primary-btn {
+  width: 100%; padding: 0.9rem;
+  background: var(--primary);
+  color: white; border: none; border-radius: 10px;
+  font-weight: 600; cursor: pointer; margin-top: 1rem;
+}
+.primary-btn:hover { opacity: 0.9; }
+
+/* --- COLUMN 2: CENTER CHART --- */
+.chart-wrapper {
+  height: 280px; /* Slightly bigger chart */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Budgets */
+.budget-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.9rem;
+}
+.budget-bar-bg { flex: 1; height: 8px; background: var(--input-bg); border-radius: 10px; margin: 0 15px; }
+.budget-bar-fill { height: 100%; background: var(--primary); border-radius: 10px; }
+.budget-input-mini {
+  width: 50px; padding: 4px; background: var(--input-bg);
+  border: 1px solid var(--border); border-radius: 6px;
+  text-align: center; color: var(--text-main); font-size: 0.8rem;
+}
+
+/* --- COLUMN 3: HISTORY (RIGHT) --- */
+.history-column h3 { margin-bottom: 1rem; font-size: 1.1rem; }
+
+.transaction-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: transform 0.2s;
+}
+.transaction-card:hover { transform: translateX(-3px); border-color: var(--primary); }
+
+.t-icon {
+  width: 40px; height: 40px;
+  background: var(--input-bg);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 0.8rem;
+  font-size: 1.2rem;
+}
+.t-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px; }
+.t-amount { font-weight: 700; font-size: 1rem; margin-right: 0.5rem; }
+
+/* Action Buttons */
+.actions { display: flex; gap: 4px; }
+.icon-btn {
+  background: transparent; border: none; cursor: pointer;
+  padding: 6px; border-radius: 6px; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { background-color: var(--input-bg); }
+
+/* Helpers */
+h1, h2, h3, h4, h5, h6, p, span, div { color: inherit; margin: 0; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-container { grid-template-columns: 1fr 1fr; } /* Tablet: 2 cols */
+  .history-column { grid-column: span 2; } /* History drops to bottom */
+}
+@media (max-width: 768px) {
+  .dashboard-container { grid-template-columns: 1fr; } /* Mobile: 1 col */
+  .history-column { grid-column: auto; }
+}
+
+/* --- PROFILE DROPDOWN MENU --- */
+.menu-container {
+  position: relative; /* Anchor for the dropdown */
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 120%; /* Pushes it down slightly */
+  right: 0;
+  width: 160px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 8px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hover Effect */
+.dropdown-item:hover {
+  background: var(--input-bg);
+}
+
+/* Make Logout Red for Danger */
+.dropdown-item.logout {
+  color: #ff7675; /* Soft Red */
+}
+.dropdown-item.logout:hover {
+  background: #fff5f5; /* Very light red bg */
+}
+
+/* Dark mode adjustment for red hover */
+[data-theme='dark'] .dropdown-item.logout:hover {
+  background: rgba(255, 118, 117, 0.1);
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
