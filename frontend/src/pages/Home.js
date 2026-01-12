@@ -178,7 +178,8 @@ function Home() {
       } catch(e) {}
   };
 
-  const allCategories = ["Food", "Transport", "Entertainment", "Bills", "Health", "Shopping", ...categories.map(c => c.name)];
+  // Filter ensures we only show categories that actually have a name
+const allCategories = ["Food", "Transport", "Entertainment", "Bills", "Health", "Shopping", ...categories.filter(c => c.name).map(c => c.name)];
 
   return (
     <div className="home-container">
@@ -247,7 +248,7 @@ function Home() {
             {categories.length > 0 && (
                 <div className="ui-card">
                     <h3 style={{marginBottom:'1rem'}}>Budgets</h3>
-                    {categories.map(cat => {
+                    {categories.filter(c => c.name).map(cat => {
                         const spent = getCategorySpent(cat.name);
                         const limit = cat.budget || 0;
                         const isOver = limit > 0 && spent > limit;
