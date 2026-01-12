@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { API_URL } from '../config';
 import './Home.css';
+import Chatbot from '../components/Chatbot';
 
 // Chart Imports
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -373,6 +374,7 @@ function Home() {
             )}
         </div>
       </div>
+      <Chatbot />
     </div>
   );
 }
