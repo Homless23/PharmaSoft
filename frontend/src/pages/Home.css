@@ -247,3 +247,67 @@ h1, h2, h3, h4, h5, h6, p, span, div { color: inherit; margin: 0; }
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 768px) {
+
+    /* 1. Stack the Dashboard Vertically */
+    .dashboard-container {
+        flex-direction: column; /* Stacks columns on top of each other */
+        padding: 1rem;
+        gap: 1.5rem;
+    }
+
+    /* 2. Make columns full width */
+    .controls-column, 
+    .center-column, 
+    .history-column {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0; /* Prevents overflow issues */
+    }
+
+    /* 3. Fix the Navbar */
+    .navbar {
+        padding: 1rem; /* Smaller padding */
+    }
+
+    .nav-brand {
+        font-size: 1.2rem; /* Smaller logo text */
+    }
+
+    /* 4. Improve Cards on Mobile */
+    .ui-card {
+        padding: 1.2rem;
+    }
+
+    /* 5. Adjust Charts */
+    .chart-wrapper {
+        height: 250px; /* Force a reasonable height for the pie chart */
+    }
+
+    /* 6. Fix Transaction List */
+    .transaction-card {
+        flex-direction: column; /* Stack items inside the card if needed */
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .transaction-card > div {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* 7. Make buttons tap-friendly */
+    .primary-btn, .auth-btn {
+        padding: 12px; /* Bigger touch target */
+    }
+    
+    /* 8. Hide "Export PDF" text on tiny screens, keep icon? */
+    /* Optional: Just make it full width */
+    .history-column button {
+        width: 100%;
+        margin-top: 10px;
+        justify-content: center;
+    }
+}
