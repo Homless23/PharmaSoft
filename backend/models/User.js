@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const UserSchema = new Schema({
-    name: { // CHANGED from 'username' to 'name'
+    name: { // We need 'name', NOT 'username'
         type: String,
         required: true
     },
@@ -15,7 +15,7 @@ const UserSchema = new Schema({
         type: String,
         required: true
     },
-    avatar: { // Added this for your Profile Picture feature!
+    avatar: {
         type: String,
         default: ""
     },
