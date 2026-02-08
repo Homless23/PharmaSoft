@@ -2,17 +2,19 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (to, subject, text) => {
     try {
-        console.log("🔌 Connecting to Gmail SMTP (forcing IPv4)...");
+        console.log("🔌 Connecting to Gmail SMTP (Port 587)...");
         
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
-            port: 465,
-            secure: true,
+            port: 587,              // <--- CHANGED TO 587 (TLS)
+            secure: false,          // <--- CHANGED TO FALSE (StartTLS)
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
-            family: 4 // <--- THIS FIXES THE CRASH (Forces IPv4)
+            tls: {
+                rejectUnauthorized: false // Helps with some cloud SSL issues
+            }
         });
 
         const mailOptions = {
