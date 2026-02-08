@@ -40,8 +40,6 @@ function Home() {
   const [categories, setCategories] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // FIX 1: Add Loading State for the Button
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters
@@ -112,9 +110,11 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [navigate]);
 
-  // --- FILTERING ---
+  // --- FILTERING (WITH SAFETY SHIELD 🛡️) ---
   const getFilteredExpenses = () => {
-    let filtered = expenses;
+    // 🛡️ SAFETY CHECK: Remove any null/undefined items before they crash the app
+    let filtered = expenses.filter(item => item && item.amount !== undefined);
+
     const now = new Date();
 
     if (timeRange === '7days') {
@@ -171,7 +171,7 @@ function Home() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true); // LOCK BUTTON
+    setIsSubmitting(true);
 
     const token = localStorage.getItem('token');
     const endpoint = editId ? `${API_URL}/api/expenses/${editId}` : `${API_URL}/api/expenses/add`;
@@ -181,8 +181,6 @@ function Home() {
     try {
       const res = await method(endpoint, payload, { headers: { 'auth-token': token } });
       
-      // FIX 2: ROBUST DATA HANDLING (Works for both old and new backend)
-      // If res.data has .expense, use it. Otherwise, assume res.data IS the expense.
       const newExpense = res.data.expense ? res.data.expense : res.data;
       const alertData = res.data.alert ? res.data.alert : null;
 
@@ -190,10 +188,11 @@ function Home() {
         setExpenses(expenses.map(ex => ex._id === editId ? newExpense : ex));
         setEditId(null);
       } else {
-        // FIX 3: ADD INSTANTLY TO LIST
-        setExpenses([newExpense, ...expenses]);
+        // Only add if newExpense is valid
+        if (newExpense && newExpense.amount) {
+            setExpenses([newExpense, ...expenses]);
+        }
         
-        // Check for Email Alert
         if (alertData && alertData.triggered) {
             console.log("🚨 Sending Email...");
             const templateParams = {
@@ -203,19 +202,18 @@ function Home() {
                 spent: alertData.spent,
                 to_email: alertData.email
             };
-            emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams, 'YOUR_PUBLIC_KEY')
+            emailjs.send('service_a6naxq8', 'template_2e5yara', templateParams, 'ADhLMTJlGBcaVRQTM')
               .then(() => alert(`🚨 Over Budget Alert sent for ${alertData.category}!`))
               .catch(err => console.error("Email failed", err));
         }
       }
-      // Reset Form
       setForm({ title: '', amount: '', category: 'Food', date: new Date().toISOString().split('T')[0] });
 
     } catch (err) { 
       alert("Failed to save. Server might be waking up!"); 
       console.error(err); 
     } finally {
-      setIsSubmitting(false); // UNLOCK BUTTON
+      setIsSubmitting(false);
     }
   };
 
@@ -227,7 +225,6 @@ function Home() {
     } catch (err) { console.error(err); }
   };
 
-  // ... (Other handlers like addCategory, setBudget remain same) ...
   const handleSetBudget = async (id, val) => {
     try {
         await axios.put(`${API_URL}/api/categories/${id}`, { budget: toBase(val) }, { headers: { 'auth-token': localStorage.getItem('token') } });
@@ -283,7 +280,6 @@ function Home() {
                             {allCategories.map((c, i) => <option key={i} value={c}>{c}</option>)}
                         </select>
                         
-                        {/* FIX 4: BUTTON SHOWS LOADING STATE */}
                         <button type="submit" className="primary-btn" disabled={isSubmitting} style={{opacity: isSubmitting ? 0.7 : 1}}>
                             {isSubmitting ? 'Saving...' : (editId ? 'Update' : 'Add Expense')}
                         </button>
@@ -300,7 +296,6 @@ function Home() {
                         <Doughnut data={{labels: Object.keys(categoryTotals), datasets: [{data: Object.values(categoryTotals), backgroundColor: ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#d63031', '#0984e3']}]}} />
                     </div>
                 </div>
-                {/* Budgets UI */}
                 <div className="ui-card">
                     <h3>Budgets</h3>
                     {categories.map(cat => {
