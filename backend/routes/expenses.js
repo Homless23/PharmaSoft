@@ -62,7 +62,7 @@ router.post('/add', fetchuser, [
                 if(userObj) {
                     const subject = `⚠️ Budget Alert: ${category}`;
                     const message = `Hi ${userObj.name},\n\nYou have exceeded your budget for ${category}.\n\nBudget: Rs ${catObj.budget}\nTotal Spent: Rs ${totalSpent}\n\nStop spending money! 💸\n\n- ExpenseTracker`;
-                    
+                    console.log(`📨 Sending email TO: ${userObj.email}`);
                     await sendEmail(userObj.email, subject, message);
                 } else {
                     console.log("User email not found.");
