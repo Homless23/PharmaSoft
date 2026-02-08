@@ -93,8 +93,9 @@ function Home() {
             axios.get(`${API_URL}/api/categories`, config),
             axios.post(`${API_URL}/api/auth/getuser`, {}, config)
         ]);
-        setExpenses(expRes.data);
-        setCategories(catRes.data);
+        // 🛡️ SAFETY CHECK: Ensure data is an array
+        setExpenses(Array.isArray(expRes.data) ? expRes.data : []);
+        setCategories(Array.isArray(catRes.data) ? catRes.data : []);
         setUser(userRes.data);
       } catch (err) { console.error(err); } 
       finally { setLoading(false); }
@@ -112,8 +113,12 @@ function Home() {
 
   // --- FILTERING (WITH SAFETY SHIELD 🛡️) ---
   const getFilteredExpenses = () => {
-    // 🛡️ SAFETY CHECK: Remove any null/undefined items before they crash the app
-    let filtered = expenses.filter(item => item && item.amount !== undefined);
+    if (!expenses || expenses.length === 0) return [];
+    
+    // 🛡️ Filter out bad data ("ghost" expenses)
+    let filtered = expenses.filter(item => {
+        return item && item.amount !== undefined && item.amount !== null && !isNaN(item.amount);
+    });
 
     const now = new Date();
 
@@ -137,23 +142,33 @@ function Home() {
 
     if (searchQuery) {
         filtered = filtered.filter(item => 
-            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.category.toLowerCase().includes(searchQuery.toLowerCase())
+            (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()))
         );
     }
     return filtered;
   };
   const filteredExpenses = getFilteredExpenses();
 
-  // --- TOTALS ---
-  const totalSpent = filteredExpenses.reduce((acc, item) => acc + item.amount, 0);
+  // --- TOTALS (ARMORED MATH 🛡️) ---
+  const totalSpent = filteredExpenses.reduce((acc, item) => {
+    if(!item || !item.amount) return acc;
+    return acc + item.amount;
+  }, 0);
+
   const categoryTotals = filteredExpenses.reduce((acc, item) => {
+    if(!item || !item.amount) return acc;
     const cat = item.category || 'Other';
     const convertedAmt = item.amount * RATES[currency].rate;
     acc[cat] = (acc[cat] || 0) + convertedAmt;
     return acc;
   }, {});
-  const getCategorySpent = (cat) => filteredExpenses.filter(e => e.category === cat).reduce((a, b) => a + b.amount, 0);
+
+  const getCategorySpent = (cat) => {
+      return filteredExpenses
+        .filter(e => e.category === cat)
+        .reduce((a, b) => a + (b.amount || 0), 0);
+  };
 
   // --- HANDLERS ---
   const downloadPDF = () => {
@@ -161,8 +176,8 @@ function Home() {
     doc.text(`Expense Report`, 14, 22);
     const rows = filteredExpenses.map(item => [
         new Date(item.date).toLocaleDateString(), 
-        item.title, 
-        item.category, 
+        item.title || 'Unknown', 
+        item.category || 'Other', 
         `${RATES[currency].symbol}${(item.amount * RATES[currency].rate).toFixed(2)}`
     ]);
     autoTable(doc, { head: [["Date", "Item", "Category", "Amount"]], body: rows, startY: 30 });
@@ -188,11 +203,11 @@ function Home() {
         setExpenses(expenses.map(ex => ex._id === editId ? newExpense : ex));
         setEditId(null);
       } else {
-        // Only add if newExpense is valid
         if (newExpense && newExpense.amount) {
             setExpenses([newExpense, ...expenses]);
         }
         
+        // 📧 EMAIL LOGIC (WITH YOUR KEYS)
         if (alertData && alertData.triggered) {
             console.log("🚨 Sending Email...");
             const templateParams = {
@@ -202,15 +217,20 @@ function Home() {
                 spent: alertData.spent,
                 to_email: alertData.email
             };
-            emailjs.send('service_a6naxq8', 'template_2e5yara', templateParams, 'ADhLMTJlGBcaVRQTM')
-              .then(() => alert(`🚨 Over Budget Alert sent for ${alertData.category}!`))
-              .catch(err => console.error("Email failed", err));
+            emailjs.send(
+                'service_a6naxq8',     // YOUR SERVICE ID
+                'template_2e5yara',    // YOUR TEMPLATE ID
+                templateParams, 
+                'ADhLMTJlGBcaVRQTM'    // YOUR PUBLIC KEY
+            )
+            .then(() => alert(`🚨 Over Budget Alert sent for ${alertData.category}!`))
+            .catch(err => console.error("Email failed", err));
         }
       }
       setForm({ title: '', amount: '', category: 'Food', date: new Date().toISOString().split('T')[0] });
 
     } catch (err) { 
-      alert("Failed to save. Server might be waking up!"); 
+      alert("Failed to save."); 
       console.error(err); 
     } finally {
       setIsSubmitting(false);
