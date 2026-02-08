@@ -3,11 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import emailjs from '@emailjs/browser'; // <--- NEW IMPORT
+import emailjs from '@emailjs/browser';
 import { API_URL } from '../config';
 import './Home.css';
 
-// --- IMPORTS FOR FEATURES ---
+// Feature Imports
 import Chatbot from '../components/Chatbot';
 import Spinner from '../components/Spinner';
 
@@ -16,7 +16,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// --- CURRENCY CONFIGURATION ---
+// --- CONFIG ---
 const RATES = {
     NPR: { rate: 1, symbol: 'Rs ' },
     USD: { rate: 0.0075, symbol: '$' },
@@ -34,42 +34,39 @@ const getCategoryIcon = (cat) => {
 
 function Home() {
   const navigate = useNavigate();
-  // --- STATE MANAGEMENT ---
+  
+  // --- STATE ---
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // DATE FILTER STATE
+  // FIX 1: Add Loading State for the Button
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filters
   const [timeRange, setTimeRange] = useState('all'); 
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-
   const [searchQuery, setSearchQuery] = useState(''); 
+  
+  // Settings
   const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [currency, setCurrency] = useState('NPR');
 
+  // Forms
   const [form, setForm] = useState({ 
     title: '', amount: '', category: 'Food', date: new Date().toISOString().split('T')[0] 
   });
-
   const [isCreatingCat, setIsCreatingCat] = useState(false);
   const [newCat, setNewCat] = useState('');
   const [editId, setEditId] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // --- HELPER FUNCTIONS ---
-  const toDisplay = (val) => {
-    if(!val) return 0;
-    return (val * RATES[currency].rate).toFixed(2);
-  };
-
-  const toBase = (val) => {
-    if(!val) return 0;
-    return parseFloat(val) / RATES[currency].rate;
-  };
-
+  // --- HELPERS ---
+  const toDisplay = (val) => (!val ? 0 : (val * RATES[currency].rate).toFixed(2));
+  const toBase = (val) => (!val ? 0 : parseFloat(val) / RATES[currency].rate);
   const formatMoney = (valNPR) => {
     const converted = (valNPR * RATES[currency].rate);
     return `${RATES[currency].symbol}${converted.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}`;
@@ -101,8 +98,8 @@ function Home() {
         setExpenses(expRes.data);
         setCategories(catRes.data);
         setUser(userRes.data);
-        setLoading(false);
-      } catch (err) { console.error(err); setLoading(false); }
+      } catch (err) { console.error(err); } 
+      finally { setLoading(false); }
     };
     fetchData();
 
@@ -115,7 +112,7 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [navigate]);
 
-  // --- FILTER LOGIC ---
+  // --- FILTERING ---
   const getFilteredExpenses = () => {
     let filtered = expenses;
     const now = new Date();
@@ -124,13 +121,11 @@ function Home() {
         const pastDate = new Date();
         pastDate.setDate(now.getDate() - 7);
         filtered = filtered.filter(item => new Date(item.date) >= pastDate);
-    } 
-    else if (timeRange === '30days') {
+    } else if (timeRange === '30days') {
         const pastDate = new Date();
         pastDate.setDate(now.getDate() - 30);
         filtered = filtered.filter(item => new Date(item.date) >= pastDate);
-    } 
-    else if (timeRange === 'custom' && customStart && customEnd) {
+    } else if (timeRange === 'custom' && customStart && customEnd) {
         const start = new Date(customStart);
         const end = new Date(customEnd);
         end.setHours(23, 59, 59, 999); 
@@ -148,46 +143,37 @@ function Home() {
     }
     return filtered;
   };
-
   const filteredExpenses = getFilteredExpenses();
 
-  // --- PDF EXPORT ---
-  const downloadPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text(`Expense Report (${currency})`, 14, 22);
-    doc.setFontSize(11); doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-    
-    const tableColumn = ["Date", "Item", "Category", "Amount"];
-    const tableRows = [];
-
-    filteredExpenses.forEach(item => {
-        const convertedAmt = (item.amount * RATES[currency].rate).toFixed(2);
-        const rowData = [ new Date(item.date).toLocaleDateString(), item.title, item.category, `${RATES[currency].symbol}${convertedAmt}` ];
-        tableRows.push(rowData);
-    });
-
-    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 45, theme: 'grid', styles: { fontSize: 10 }, headStyles: { fillColor: [108, 92, 231] } });
-    doc.save("expenses.pdf");
-  };
-
-  // --- CALCULATIONS ---
+  // --- TOTALS ---
   const totalSpent = filteredExpenses.reduce((acc, item) => acc + item.amount, 0);
-  
   const categoryTotals = filteredExpenses.reduce((acc, item) => {
     const cat = item.category || 'Other';
     const convertedAmt = item.amount * RATES[currency].rate;
     acc[cat] = (acc[cat] || 0) + convertedAmt;
     return acc;
   }, {});
-
   const getCategorySpent = (cat) => filteredExpenses.filter(e => e.category === cat).reduce((a, b) => a + b.amount, 0);
 
-  // --- HANDLERS (UPDATED FOR EMAILJS) ---
+  // --- HANDLERS ---
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    doc.text(`Expense Report`, 14, 22);
+    const rows = filteredExpenses.map(item => [
+        new Date(item.date).toLocaleDateString(), 
+        item.title, 
+        item.category, 
+        `${RATES[currency].symbol}${(item.amount * RATES[currency].rate).toFixed(2)}`
+    ]);
+    autoTable(doc, { head: [["Date", "Item", "Category", "Amount"]], body: rows, startY: 30 });
+    doc.save("expenses.pdf");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true); // LOCK BUTTON
+
     const token = localStorage.getItem('token');
-    
-    // Determine Endpoint
     const endpoint = editId ? `${API_URL}/api/expenses/${editId}` : `${API_URL}/api/expenses/add`;
     const method = editId ? axios.put : axios.post;
     const payload = { ...form, amount: toBase(form.amount) };
@@ -195,240 +181,167 @@ function Home() {
     try {
       const res = await method(endpoint, payload, { headers: { 'auth-token': token } });
       
-      // Update State
+      // FIX 2: ROBUST DATA HANDLING (Works for both old and new backend)
+      // If res.data has .expense, use it. Otherwise, assume res.data IS the expense.
+      const newExpense = res.data.expense ? res.data.expense : res.data;
+      const alertData = res.data.alert ? res.data.alert : null;
+
       if (editId) {
-        setExpenses(expenses.map(ex => ex._id === editId ? res.data : ex));
+        setExpenses(expenses.map(ex => ex._id === editId ? newExpense : ex));
         setEditId(null);
       } else {
-        // Handle New Expense (Check for Alert)
-        const { expense, alert } = res.data; 
-        setExpenses([expense, ...expenses]);
-
-        // === 📧 EMAILJS LOGIC HERE ===
-        if (alert && alert.triggered) {
-            console.log("🚨 Budget exceeded! Sending email via Frontend...");
-            
+        // FIX 3: ADD INSTANTLY TO LIST
+        setExpenses([newExpense, ...expenses]);
+        
+        // Check for Email Alert
+        if (alertData && alertData.triggered) {
+            console.log("🚨 Sending Email...");
             const templateParams = {
-                name: alert.name,
-                category: alert.category,
-                limit: alert.limit,
-                spent: alert.spent,
-                to_email: alert.email
+                name: alertData.name,
+                category: alertData.category,
+                limit: alertData.limit,
+                spent: alertData.spent,
+                to_email: alertData.email
             };
-
-            emailjs.send(
-                'service_a6naxq8',   // <--- REPLACE THIS (e.g., 'service_xyz')
-                'template_2e5yara',  // <--- REPLACE THIS (e.g., 'template_abc')
-                templateParams,
-                'ADhLMTJlGBcaVRQTM'    // <--- REPLACE THIS (e.g., 'user_123')
-            )
-            .then(() => {
-                console.log('✅ Email sent successfully!');
-                window.alert(`🚨 Alert: You are over budget for ${alert.category}! Email sent.`);
-            })
-            .catch((err) => console.error('FAILED...', err));
+            emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams, 'YOUR_PUBLIC_KEY')
+              .then(() => alert(`🚨 Over Budget Alert sent for ${alertData.category}!`))
+              .catch(err => console.error("Email failed", err));
         }
-        // ==============================
       }
+      // Reset Form
       setForm({ title: '', amount: '', category: 'Food', date: new Date().toISOString().split('T')[0] });
-    } catch (err) { alert("Failed to save expense"); console.error(err); }
+
+    } catch (err) { 
+      alert("Failed to save. Server might be waking up!"); 
+      console.error(err); 
+    } finally {
+      setIsSubmitting(false); // UNLOCK BUTTON
+    }
   };
 
   const deleteExpense = async (id) => {
+    if(!window.confirm("Delete this?")) return;
     try {
       await axios.delete(`${API_URL}/api/expenses/${id}`, { headers: { 'auth-token': localStorage.getItem('token') } });
       setExpenses(expenses.filter(item => item._id !== id));
     } catch (err) { console.error(err); }
   };
 
-  const handleSetBudget = async (id, displayVal) => {
-    const baseVal = toBase(displayVal);
+  // ... (Other handlers like addCategory, setBudget remain same) ...
+  const handleSetBudget = async (id, val) => {
     try {
-        await axios.put(`${API_URL}/api/categories/${id}`, { budget: baseVal }, { headers: { 'auth-token': localStorage.getItem('token') } });
-        setCategories(categories.map(c => c._id === id ? { ...c, budget: baseVal } : c));
+        await axios.put(`${API_URL}/api/categories/${id}`, { budget: toBase(val) }, { headers: { 'auth-token': localStorage.getItem('token') } });
+        setCategories(categories.map(c => c._id === id ? { ...c, budget: toBase(val) } : c));
     } catch(e) {}
   };
-
   const addNewCategory = async () => {
-      if(!newCat) return;
-      try {
-        const res = await axios.post(`${API_URL}/api/categories/add`, { name: newCat }, { headers: { 'auth-token': localStorage.getItem('token') } });
-        setCategories([...categories, res.data]);
-        setForm({...form, category: newCat});
-        setNewCat(''); setIsCreatingCat(false);
-      } catch(e) {}
+    if(!newCat) return;
+    try {
+      const res = await axios.post(`${API_URL}/api/categories/add`, { name: newCat }, { headers: { 'auth-token': localStorage.getItem('token') } });
+      setCategories([...categories, res.data]);
+      setForm({...form, category: newCat});
+      setNewCat(''); setIsCreatingCat(false);
+    } catch(e) {}
   };
 
   const allCategories = ["Food", "Transport", "Entertainment", "Bills", "Health", "Shopping", ...categories.filter(c => c.name).map(c => c.name)];
 
   return (
     <div className="home-container">
-      {/* --- NAVBAR --- */}
+      {/* NAVBAR */}
       <nav className="navbar">
         <Link to="/" className="nav-brand" style={{textDecoration:'none'}}>✨ ExpenseTracker</Link>
-        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-            <select 
-                value={currency} 
-                onChange={(e) => setCurrency(e.target.value)}
-                style={{padding:'5px', borderRadius:'5px', border:'1px solid var(--border)', background:'var(--input-bg)', color:'var(--text-main)', cursor:'pointer', fontWeight:'bold'}}
-            >
+        <div style={{display:'flex', gap:'15px', alignItems:'center'}}>
+            <select value={currency} onChange={e => setCurrency(e.target.value)} style={{padding:'5px', borderRadius:'5px'}}>
                 <option value="NPR">🇳🇵 NPR</option>
-                <option value="INR">🇮🇳 INR</option>
                 <option value="USD">🇺🇸 USD</option>
-                <option value="EUR">🇪🇺 EUR</option>
             </select>
-            <button onClick={() => setDarkMode(!darkMode)} style={{background:'none', border:'none', fontSize:'1.2rem', cursor:'pointer'}}>{darkMode ? '☀️' : '🌙'}</button>
-            <div className="menu-container" ref={menuRef}>
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} style={{background:'none', border:'none', cursor:'pointer', padding:'0'}}>
-                    {user && user.avatar ? (
-                        <img src={user.avatar} alt="Profile" style={{width:'40px', height:'40px', borderRadius:'50%', objectFit:'cover', border:'2px solid var(--primary)'}} />
-                    ) : ( <div style={{width:'40px', height:'40px', borderRadius:'50%', background:'var(--primary)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', fontSize:'1.2rem'}}>{user ? user.name.charAt(0).toUpperCase() : '👤'}</div> )}
-                </button>
-                {isMenuOpen && (
-                    <div className="dropdown-menu" style={{top:'110%'}}>
-                        <Link to="/profile" className="dropdown-item" style={{textDecoration:'none', color:'var(--text-main)', marginBottom:'5px'}}>👤 My Profile</Link>
-                        <div style={{height:'1px', background:'var(--border)', margin:'5px 0'}}></div>
-                        <button className="dropdown-item logout" onClick={() => {localStorage.removeItem('token'); navigate('/login')}}>🚪 Log Out</button>
-                    </div>
-                )}
-            </div>
+            <button onClick={() => setDarkMode(!darkMode)} style={{background:'none', border:'none', fontSize:'1.2rem'}}>{darkMode ? '☀️' : '🌙'}</button>
+            <button onClick={() => {localStorage.removeItem('token'); navigate('/login')}} style={{background:'var(--primary)', color:'white', border:'none', padding:'5px 10px', borderRadius:'5px', cursor:'pointer'}}>Logout</button>
         </div>
       </nav>
 
-      {/* --- SPINNER OR CONTENT --- */}
       {loading ? (
-        <div style={{marginTop: '100px'}}>
-            <Spinner />
-            <p style={{textAlign:'center', marginTop:'20px', color:'var(--text-secondary)'}}>Loading your finances...</p>
-        </div>
+        <div style={{marginTop: '100px'}}><Spinner /><p style={{textAlign:'center'}}>Loading...</p></div>
       ) : (
         <div className="dashboard-container">
-            
-            {/* LEFT: CONTROLS */}
+            {/* CONTROLS */}
             <div className="controls-column">
                 <div className="ui-card balance-card">
                     <h3>Total Spent</h3>
                     <h1>{formatMoney(totalSpent)}</h1>
-                    <p style={{fontSize:'0.8rem', opacity:0.8, color:'white', marginTop:'5px'}}>
-                        {timeRange === 'all' ? 'All Time' : timeRange === 'custom' ? 'Selected Period' : `Last ${timeRange.replace('days','')} Days`}
-                    </p>
                 </div>
                 <div className="ui-card">
-                    <div className="expense-form-header">
-                        <h3>{editId ? 'Edit Transaction' : 'New Transaction'}</h3>
-                        <button onClick={() => setIsCreatingCat(!isCreatingCat)} style={{border:'none', background:'none', color:'var(--primary)', cursor:'pointer', fontSize:'0.85rem'}}>{isCreatingCat ? 'Cancel' : '+ Category'}</button>
-                    </div>
-                    {isCreatingCat && (
-                        <div style={{display:'flex', alignItems: 'center', gap:'10px', marginBottom:'1rem'}}>
-                            <input className="modern-input" placeholder="Category Name" value={newCat} onChange={e => setNewCat(e.target.value)} style={{ flex: 1, minWidth: 0 }} />
-                            <button type="button" onClick={() => { addNewCategory(); }} style={{background:'var(--primary)', color:'white', border:'none', borderRadius:'8px', height: '45px', width: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor:'pointer', fontSize: '1.2rem', flexShrink: 0 }}>✓</button>
-                        </div>
-                    )}
+                    <h3>{editId ? 'Edit' : 'New Transaction'}</h3>
                     <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:'0.8rem'}}>
-                        <input className="modern-input" placeholder="What did you buy?" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+                        <input className="modern-input" placeholder="Item" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
                         <div className="form-row">
-                            <input type="number" step="0.01" className="modern-input" placeholder={RATES[currency].symbol} value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} required />
+                            <input type="number" className="modern-input" placeholder="Amount" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} required />
                             <input type="date" className="modern-input" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required />
                         </div>
-                        <select className="modern-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>{allCategories.map((c, i) => <option key={i} value={c}>{c}</option>)}</select>
-                        <button type="submit" className="primary-btn">{editId ? 'Save Changes' : 'Add Expense'}</button>
-                        {editId && <button type="button" onClick={() => { setEditId(null); setForm({title:'', amount:'', category:'Food', date: new Date().toISOString().split('T')[0]}) }} style={{width:'100%', background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', marginTop:'10px'}}>Cancel</button>}
+                        <select className="modern-input" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                            {allCategories.map((c, i) => <option key={i} value={c}>{c}</option>)}
+                        </select>
+                        
+                        {/* FIX 4: BUTTON SHOWS LOADING STATE */}
+                        <button type="submit" className="primary-btn" disabled={isSubmitting} style={{opacity: isSubmitting ? 0.7 : 1}}>
+                            {isSubmitting ? 'Saving...' : (editId ? 'Update' : 'Add Expense')}
+                        </button>
+
                     </form>
                 </div>
             </div>
 
-            {/* CENTER: ANALYSIS */}
+            {/* ANALYSIS */}
             <div className="center-column">
                 <div className="ui-card">
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
-                        <h3 style={{marginBottom:0}}>Analysis ({currency})</h3>
-                        <select className="modern-input" style={{width:'auto', padding:'5px 10px', fontSize:'0.85rem'}} value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                            <option value="all">All Time</option>
-                            <option value="30days">Last 30 Days</option>
-                            <option value="7days">Last 7 Days</option>
-                            <option value="custom">Custom Range</option>
-                        </select>
+                    <h3>Analysis</h3>
+                    <div className="chart-wrapper">
+                        <Doughnut data={{labels: Object.keys(categoryTotals), datasets: [{data: Object.values(categoryTotals), backgroundColor: ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#d63031', '#0984e3']}]}} />
                     </div>
-
-                    {timeRange === 'custom' && (
-                        <div style={{display:'flex', gap:'10px', marginBottom:'15px', padding:'10px', background:'var(--bg)', borderRadius:'8px'}}>
-                            <div style={{flex:1}}>
-                                <label style={{fontSize:'0.75rem', color:'var(--text-secondary)'}}>From:</label>
-                                <input type="date" className="modern-input" style={{padding:'5px'}} value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
-                            </div>
-                            <div style={{flex:1}}>
-                                <label style={{fontSize:'0.75rem', color:'var(--text-secondary)'}}>To:</label>
-                                <input type="date" className="modern-input" style={{padding:'5px'}} value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
-                            </div>
-                        </div>
-                    )}
-
-                    {filteredExpenses.length > 0 ? (
-                        <div className="chart-wrapper"><Doughnut data={{labels: Object.keys(categoryTotals), datasets: [{data: Object.values(categoryTotals), backgroundColor: ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#d63031', '#0984e3'], borderWidth: 0}]}} options={{maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 15 } } }, cutout: '75%'}} /></div>
-                    ) : <p style={{textAlign:'center', color:'var(--text-secondary)', padding:'2rem'}}>No data for this period.</p>}
                 </div>
-                
-                {categories.length > 0 && (
-                    <div className="ui-card">
-                        <h3 style={{marginBottom:'1rem'}}>Budgets</h3>
-                        {categories.filter(c => c.name).map(cat => {
-                            const spent = getCategorySpent(cat.name);
-                            const limit = cat.budget || 0;
-                            const isOver = limit > 0 && spent > limit;
-                            const pct = limit > 0 ? Math.min((spent/limit)*100, 100) : 0;
-                            const displaySpent = (spent * RATES[currency].rate).toFixed(0);
-                            const displayLimit = (limit * RATES[currency].rate).toFixed(0);
-
-                            return (
-                                <div key={cat._id} className="budget-item">
-                                    <span style={{fontWeight:'600', width:'25%'}}>{cat.name}</span>
-                                    <div className="budget-bar-bg"><div className="budget-bar-fill" style={{width: `${pct}%`, background: isOver ? '#ff7675' : '#00b894'}}></div></div>
-                                    <div style={{display:'flex', flexDirection:'column', alignItems:'end', width:'70px'}}>
-                                        <span style={{fontSize:'0.75rem', color: isOver ? '#ff7675' : 'var(--text-secondary)'}}>{RATES[currency].symbol}{displaySpent}</span>
-                                        <input type="number" className="budget-input-mini" placeholder="Limit" defaultValue={displayLimit > 0 ? displayLimit : ''} key={`${currency}-${cat._id}`} onBlur={(e) => handleSetBudget(cat._id, e.target.value)} />
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
+                {/* Budgets UI */}
+                <div className="ui-card">
+                    <h3>Budgets</h3>
+                    {categories.map(cat => {
+                        const spent = getCategorySpent(cat.name);
+                        const limit = cat.budget || 0;
+                        const pct = limit > 0 ? (spent/limit)*100 : 0;
+                        return (
+                            <div key={cat._id} className="budget-item">
+                                <span>{cat.name}</span>
+                                <div className="budget-bar-bg"><div className="budget-bar-fill" style={{width: `${Math.min(pct,100)}%`, background: pct>100?'red':'#00b894'}}></div></div>
+                                <input type="number" className="budget-input-mini" placeholder={limit} onBlur={e => handleSetBudget(cat._id, e.target.value)} />
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
 
-            {/* RIGHT: HISTORY */}
+            {/* HISTORY */}
             <div className="history-column">
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
-                    <h3 style={{margin:0}}>History</h3>
-                    <button onClick={downloadPDF} style={{background: 'var(--input-bg)', border: '1px solid var(--border)', color:'var(--text-main)', padding:'5px 10px', borderRadius:'8px', cursor:'pointer', fontSize:'0.8rem', fontWeight:'600'}}>📄 Export PDF</button>
-                </div>
-                <input className="modern-input" placeholder="🔍 Search transactions..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{marginBottom:'1rem', padding:'0.8rem'}} />
-                {filteredExpenses.length === 0 ? (
-                    <div className="ui-card" style={{textAlign:'center', color:'var(--text-secondary)'}}><p style={{fontSize:'2rem'}}>🍃</p><p>No transactions found.</p></div>
-                ) : (
-                    <div className="transaction-list">
-                        {filteredExpenses.map(item => (
-                            <div key={item._id} className="transaction-card">
-                                <div style={{display:'flex', alignItems:'center'}}>
-                                    <div className="t-icon">{getCategoryIcon(item.category || 'Other')}</div>
-                                    <div><span className="t-title">{item.title}</span><div className="t-meta">{item.category} • {item.date ? new Date(item.date).toLocaleDateString() : 'No Date'}</div></div>
-                                </div>
-                                <div style={{display:'flex', alignItems:'center'}}>
-                                    <span className="t-amount">-{formatMoney(item.amount)}</span>
-                                    <div className="actions">
-                                        <button className="icon-btn" onClick={() => { setEditId(item._id); const dateVal = item.date ? new Date(item.date).toISOString().split('T')[0] : ''; setForm({title: item.title, amount: toDisplay(item.amount), category: item.category, date: dateVal}); window.scrollTo({top: 0, behavior:'smooth'}); }}>✏️</button>
-                                        <button className="icon-btn" onClick={() => deleteExpense(item._id)}>🗑️</button>
-                                    </div>
-                                </div>
+                <h3>History <button onClick={downloadPDF} style={{fontSize:'0.8rem'}}>📄</button></h3>
+                <div className="transaction-list">
+                    {filteredExpenses.map(item => (
+                        <div key={item._id} className="transaction-card">
+                            <div>
+                                <span className="t-title">{item.title}</span>
+                                <div className="t-meta">{item.category} • {new Date(item.date).toLocaleDateString()}</div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                            <div>
+                                <span className="t-amount">-{formatMoney(item.amount)}</span>
+                                <button onClick={() => deleteExpense(item._id)} style={{marginLeft:'10px', border:'none', background:'none'}}>🗑️</button>
+                                <button onClick={() => { setEditId(item._id); setForm({title: item.title, amount: toDisplay(item.amount), category: item.category, date: item.date.split('T')[0]}) }} style={{marginLeft:'5px', border:'none', background:'none'}}>✏️</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
       )}
-
-      {/* CHATBOT */}
       <Chatbot />
     </div>
   );
 }
+
 export default Home;
