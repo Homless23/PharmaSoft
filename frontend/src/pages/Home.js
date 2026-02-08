@@ -3,12 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import emailjs from '@emailjs/browser'; // <--- NEW IMPORT
 import { API_URL } from '../config';
 import './Home.css';
 
 // --- IMPORTS FOR FEATURES ---
-import Chatbot from '../components/Chatbot'; // Ensure you created this!
-import Spinner from '../components/Spinner'; // Ensure you created this!
+import Chatbot from '../components/Chatbot';
+import Spinner from '../components/Spinner';
 
 // Chart Imports
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -17,10 +18,10 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 // --- CURRENCY CONFIGURATION ---
 const RATES = {
-    NPR: { rate: 1, symbol: 'Rs ' },        // Base Currency
-    USD: { rate: 0.0075, symbol: '$' },     // ~133 NPR = 1 USD
-    EUR: { rate: 0.0069, symbol: '€' },     // ~145 NPR = 1 EUR
-    INR: { rate: 0.625, symbol: '₹' }       // ~1.6 NPR = 1 INR
+    NPR: { rate: 1, symbol: 'Rs ' },
+    USD: { rate: 0.0075, symbol: '$' },
+    EUR: { rate: 0.0069, symbol: '€' },
+    INR: { rate: 0.625, symbol: '₹' }
 };
 
 const getCategoryIcon = (cat) => {
@@ -100,7 +101,7 @@ function Home() {
         setExpenses(expRes.data);
         setCategories(catRes.data);
         setUser(userRes.data);
-        setLoading(false); // STOP LOADING SPINNER
+        setLoading(false);
       } catch (err) { console.error(err); setLoading(false); }
     };
     fetchData();
@@ -114,12 +115,11 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [navigate]);
 
-  // --- FILTER LOGIC (UPDATED FOR DATE PICKER) ---
+  // --- FILTER LOGIC ---
   const getFilteredExpenses = () => {
     let filtered = expenses;
     const now = new Date();
 
-    // Time Range Filtering
     if (timeRange === '7days') {
         const pastDate = new Date();
         pastDate.setDate(now.getDate() - 7);
@@ -131,19 +131,15 @@ function Home() {
         filtered = filtered.filter(item => new Date(item.date) >= pastDate);
     } 
     else if (timeRange === 'custom' && customStart && customEnd) {
-        // Parse dates strictly as YYYY-MM-DD to avoid timezone issues
         const start = new Date(customStart);
         const end = new Date(customEnd);
-        // Include the entire end day
         end.setHours(23, 59, 59, 999); 
-        
         filtered = filtered.filter(item => {
             const itemDate = new Date(item.date);
             return itemDate >= start && itemDate <= end;
         });
     }
 
-    // Search Filtering
     if (searchQuery) {
         filtered = filtered.filter(item => 
             item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,9 +156,6 @@ function Home() {
     const doc = new jsPDF();
     doc.setFontSize(18); doc.text(`Expense Report (${currency})`, 14, 22);
     doc.setFontSize(11); doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
-    if(timeRange === 'custom') {
-        doc.text(`Period: ${customStart} to ${customEnd}`, 14, 36);
-    }
     
     const tableColumn = ["Date", "Item", "Category", "Amount"];
     const tableRows = [];
@@ -189,24 +182,56 @@ function Home() {
 
   const getCategorySpent = (cat) => filteredExpenses.filter(e => e.category === cat).reduce((a, b) => a + b.amount, 0);
 
-  // --- HANDLERS ---
+  // --- HANDLERS (UPDATED FOR EMAILJS) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    
+    // Determine Endpoint
     const endpoint = editId ? `${API_URL}/api/expenses/${editId}` : `${API_URL}/api/expenses/add`;
     const method = editId ? axios.put : axios.post;
     const payload = { ...form, amount: toBase(form.amount) };
 
     try {
       const res = await method(endpoint, payload, { headers: { 'auth-token': token } });
+      
+      // Update State
       if (editId) {
         setExpenses(expenses.map(ex => ex._id === editId ? res.data : ex));
         setEditId(null);
       } else {
-        setExpenses([res.data, ...expenses]);
+        // Handle New Expense (Check for Alert)
+        const { expense, alert } = res.data; 
+        setExpenses([expense, ...expenses]);
+
+        // === 📧 EMAILJS LOGIC HERE ===
+        if (alert && alert.triggered) {
+            console.log("🚨 Budget exceeded! Sending email via Frontend...");
+            
+            const templateParams = {
+                name: alert.name,
+                category: alert.category,
+                limit: alert.limit,
+                spent: alert.spent,
+                to_email: alert.email
+            };
+
+            emailjs.send(
+                'service_a6naxq8',   // <--- REPLACE THIS (e.g., 'service_xyz')
+                'template_2e5yara',  // <--- REPLACE THIS (e.g., 'template_abc')
+                templateParams,
+                'ADhLMTJlGBcaVRQTM'    // <--- REPLACE THIS (e.g., 'user_123')
+            )
+            .then(() => {
+                console.log('✅ Email sent successfully!');
+                window.alert(`🚨 Alert: You are over budget for ${alert.category}! Email sent.`);
+            })
+            .catch((err) => console.error('FAILED...', err));
+        }
+        // ==============================
       }
       setForm({ title: '', amount: '', category: 'Food', date: new Date().toISOString().split('T')[0] });
-    } catch (err) { alert("Failed to save expense"); }
+    } catch (err) { alert("Failed to save expense"); console.error(err); }
   };
 
   const deleteExpense = async (id) => {
@@ -317,7 +342,6 @@ function Home() {
                 <div className="ui-card">
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
                         <h3 style={{marginBottom:0}}>Analysis ({currency})</h3>
-                        {/* UPDATED DROPDOWN WITH CUSTOM OPTION */}
                         <select className="modern-input" style={{width:'auto', padding:'5px 10px', fontSize:'0.85rem'}} value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
                             <option value="all">All Time</option>
                             <option value="30days">Last 30 Days</option>
@@ -326,7 +350,6 @@ function Home() {
                         </select>
                     </div>
 
-                    {/* NEW: CUSTOM DATE INPUTS */}
                     {timeRange === 'custom' && (
                         <div style={{display:'flex', gap:'10px', marginBottom:'15px', padding:'10px', background:'var(--bg)', borderRadius:'8px'}}>
                             <div style={{flex:1}}>
@@ -405,7 +428,6 @@ function Home() {
 
       {/* CHATBOT */}
       <Chatbot />
-
     </div>
   );
 }
