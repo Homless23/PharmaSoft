@@ -1,313 +1,170 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* frontend/src/pages/Home.css */
 
-/* --- THEME VARIABLES --- */
 :root {
-  /* LIGHT MODE */
-  --primary: #6c5ce7;
-  --bg: #f8f9fd;
-  --card-bg: #ffffff;
-  --text-main: #2d3436;
-  --text-secondary: #636e72;
-  --input-bg: #f1f2f6;
-  --border: #dfe6e9;
-  --shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+  --primary-color: #27ae60;
+  --danger-color: #e74c3c;
+  --dark-bg: #1e1e2d;
+  --light-bg: #f0f2f5;
+  --text-color: #333;
 }
 
-/* DARK MODE */
-[data-theme='dark'] {
-  --primary: #8e7ce6;    
-  --bg: #121212;         
-  --card-bg: #1e1e1e;    
-  --text-main: #ffffff;  
-  --text-secondary: #a0a0a0;
-  --input-bg: #2c2c2c;   
-  --border: #333333;
-  --shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
-}
-
-/* --- GLOBAL RESET --- */
-body {
-  background-color: var(--bg);
-  color: var(--text-main);
-  font-family: 'Inter', sans-serif;
-  margin: 0;
+.home-container {
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--light-bg);
+  display: flex;
+  flex-direction: column;
 }
 
 /* --- NAVBAR --- */
 .navbar {
-  background: var(--card-bg);
+  background: white;
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  transition: background 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .nav-brand {
   font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--primary);
+  font-weight: bold;
+  color: var(--primary-color);
 }
 
-/* --- 3-COLUMN LAYOUT (CONTROLS | CHART | HISTORY) --- */
-.dashboard-container {
-  max-width: 1500px;
-  margin: 2rem auto;
-  padding: 0 1.5rem;
-  display: grid;
-  /* Left(Fixed) | Center(Fluid) | Right(Fixed) */
-  grid-template-columns: 340px 1fr 380px; 
-  gap: 1.5rem;
-  align-items: start;
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
-/* --- CARDS --- */
-.ui-card {
-  background: var(--card-bg);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  margin-bottom: 1.5rem;
-  transition: background 0.3s ease;
+.nav-link {
+  text-decoration: none;
+  color: #555;
+  font-weight: 500;
+  transition: color 0.3s;
 }
 
-/* --- COLUMN 1: CONTROLS (LEFT) --- */
-.balance-card {
-  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-  color: white !important;
-  text-align: center;
+.nav-link:hover {
+  color: var(--primary-color);
+}
+
+.logout-btn {
+  background: var(--danger-color);
+  color: white;
   border: none;
-  padding: 2rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.3s;
 }
-.balance-card h3, .balance-card h1 { color: white !important; }
 
-.expense-form-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+.logout-btn:hover {
+  opacity: 0.8;
+}
+
+/* --- DASHBOARD LAYOUT --- */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr; /* Left: 1 part, Right: 1.5 parts */
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Responsive: Stack columns on small screens */
+@media (max-width: 768px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- CARDS & FORMS --- */
+.ui-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.ui-card h3 {
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
 }
 
 .modern-input {
-  width: 100%; padding: 0.9rem;
-  background: var(--input-bg);
-  border: 1px solid transparent;
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
   border-radius: 10px;
-  font-size: 0.9rem;
-  color: var(--text-main);
-  outline: none; box-sizing: border-box;
-  transition: all 0.2s;
+  background: #f9f9f9;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s;
 }
-.modern-input:focus { border-color: var(--primary); background: var(--card-bg); }
-.modern-input::placeholder { color: var(--text-secondary); }
 
-.form-row { display: flex; gap: 0.8rem; }
-.form-row .modern-input { flex: 1; min-width: 0; }
+.modern-input:focus {
+  border-color: var(--primary-color);
+  background: white;
+}
 
 .primary-btn {
-  width: 100%; padding: 0.9rem;
-  background: var(--primary);
-  color: white; border: none; border-radius: 10px;
-  font-weight: 600; cursor: pointer; margin-top: 1rem;
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.2s;
 }
-.primary-btn:hover { opacity: 0.9; }
 
-/* --- COLUMN 2: CENTER CHART --- */
-.chart-wrapper {
-  height: 280px; /* Slightly bigger chart */
+.primary-btn:hover {
+  transform: translateY(-2px);
+}
+
+.primary-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* --- HISTORY LIST --- */
+.history-column h3 {
+  margin-bottom: 1rem;
+}
+
+.transaction-list {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
 }
-
-/* Budgets */
-.budget-item {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 0.9rem;
-}
-.budget-bar-bg { flex: 1; height: 8px; background: var(--input-bg); border-radius: 10px; margin: 0 15px; }
-.budget-bar-fill { height: 100%; background: var(--primary); border-radius: 10px; }
-.budget-input-mini {
-  width: 50px; padding: 4px; background: var(--input-bg);
-  border: 1px solid var(--border); border-radius: 6px;
-  text-align: center; color: var(--text-main); font-size: 0.8rem;
-}
-
-/* --- COLUMN 3: HISTORY (RIGHT) --- */
-.history-column h3 { margin-bottom: 1rem; font-size: 1.1rem; }
 
 .transaction-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  margin-bottom: 0.8rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  transition: transform 0.2s;
-}
-.transaction-card:hover { transform: translateX(-3px); border-color: var(--primary); }
-
-.t-icon {
-  width: 40px; height: 40px;
-  background: var(--input-bg);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  margin-right: 0.8rem;
-  font-size: 1.2rem;
-}
-.t-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px; }
-.t-amount { font-weight: 700; font-size: 1rem; margin-right: 0.5rem; }
-
-/* Action Buttons */
-.actions { display: flex; gap: 4px; }
-.icon-btn {
-  background: transparent; border: none; cursor: pointer;
-  padding: 6px; border-radius: 6px; font-size: 1rem;
-  display: flex; align-items: center; justify-content: center;
-}
-.icon-btn:hover { background-color: var(--input-bg); }
-
-/* Helpers */
-h1, h2, h3, h4, h5, h6, p, span, div { color: inherit; margin: 0; }
-
-/* Responsive */
-@media (max-width: 1200px) {
-  .dashboard-container { grid-template-columns: 1fr 1fr; } /* Tablet: 2 cols */
-  .history-column { grid-column: span 2; } /* History drops to bottom */
-}
-@media (max-width: 768px) {
-  .dashboard-container { grid-template-columns: 1fr; } /* Mobile: 1 col */
-  .history-column { grid-column: auto; }
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  border-left: 5px solid var(--danger-color); /* Red line for expense */
 }
 
-/* --- PROFILE DROPDOWN MENU --- */
-.menu-container {
-  position: relative; /* Anchor for the dropdown */
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 120%; /* Pushes it down slightly */
-  right: 0;
-  width: 160px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 8px;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.dropdown-item {
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
+.delete-btn {
+  background: none;
   border: none;
-  color: var(--text-main);
-  text-align: left;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 1.2rem;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
 }
 
-/* Hover Effect */
-.dropdown-item:hover {
-  background: var(--input-bg);
-}
-
-/* Make Logout Red for Danger */
-.dropdown-item.logout {
-  color: #ff7675; /* Soft Red */
-}
-.dropdown-item.logout:hover {
-  background: #fff5f5; /* Very light red bg */
-}
-
-/* Dark mode adjustment for red hover */
-[data-theme='dark'] .dropdown-item.logout:hover {
-  background: rgba(255, 118, 117, 0.1);
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- MOBILE RESPONSIVENESS --- */
-@media (max-width: 768px) {
-
-    /* 1. Stack the Dashboard Vertically */
-    .dashboard-container {
-        flex-direction: column; /* Stacks columns on top of each other */
-        padding: 1rem;
-        gap: 1.5rem;
-    }
-
-    /* 2. Make columns full width */
-    .controls-column, 
-    .center-column, 
-    .history-column {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0; /* Prevents overflow issues */
-    }
-
-    /* 3. Fix the Navbar */
-    .navbar {
-        padding: 1rem; /* Smaller padding */
-    }
-
-    .nav-brand {
-        font-size: 1.2rem; /* Smaller logo text */
-    }
-
-    /* 4. Improve Cards on Mobile */
-    .ui-card {
-        padding: 1.2rem;
-    }
-
-    /* 5. Adjust Charts */
-    .chart-wrapper {
-        height: 250px; /* Force a reasonable height for the pie chart */
-    }
-
-    /* 6. Fix Transaction List */
-    .transaction-card {
-        flex-direction: column; /* Stack items inside the card if needed */
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .transaction-card > div {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    /* 7. Make buttons tap-friendly */
-    .primary-btn, .auth-btn {
-        padding: 12px; /* Bigger touch target */
-    }
-    
-    /* 8. Hide "Export PDF" text on tiny screens, keep icon? */
-    /* Optional: Just make it full width */
-    .history-column button {
-        width: 100%;
-        margin-top: 10px;
-        justify-content: center;
-    }
+.delete-btn:hover {
+  opacity: 1;
 }

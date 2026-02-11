@@ -1,0 +1,400 @@
+:root {
+  /* --- NEW THEME: PROFESSIONAL BLUE --- */
+  --bg-body: #09090b;       /* Keep the sleek dark background */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  
+  /* The "Serious" Color Palette */
+  --brand-color: #3b82f6;   /* Standard Finance Blue */
+  --brand-hover: #2563eb;   /* Darker Blue for interaction */
+  
+  /* Gradients: Subtle and Corporate, not "flashy" */
+  --brand-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  
+  --text-main: #ffffff;
+  --text-secondary: #94a3b8; /* Cool grey */
+  --text-tertiary: #64748b;
+  
+  --success: #10b981;       /* Emerald Green (Money) */
+  --danger: #ef4444;        /* Red (Debt/Errors) */
+}
+/* --- Global Layout --- */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  
+  /* --- THE FIX: Ambient Gradient Background --- */
+  background-color: #09090b; /* Fallback */
+  background-image: 
+    radial-gradient(circle at 15% 0%, rgba(59, 130, 246, 0.15), transparent 40%), 
+    radial-gradient(circle at 85% 0%, rgba(139, 92, 246, 0.15), transparent 40%);
+  background-attachment: fixed; /* Keeps the glow in place when scrolling */
+  
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+/* ... keep the rest of your CSS the same ... */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 400px 1fr;
+    align-items: start;
+  }
+}
+
+/* --- The Glass Card (Base) --- */
+.card {
+  background: var(--glass-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease, border-color 0.3s;
+}
+
+.card:hover {
+  border-color: var(--glass-highlight);
+}
+
+/* --- Hero Pulse Card --- */
+.pulse-header {
+  margin-bottom: 1.5rem;
+}
+
+.pulse-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.pulse-amount {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+  font-feature-settings: "tnum";
+}
+
+.progress-track {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  margin-top: 2rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: var(--brand-gradient);
+  box-shadow: var(--brand-glow);
+  transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pulse-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* --- Input Form (Neumorphic Deep) --- */
+.amount-group {
+  position: relative;
+  background: rgba(0,0,0,0.3); /* Darker inset */
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  border: 1px solid transparent;
+  transition: all 0.3s;
+  margin-bottom: 1.5rem;
+}
+
+.amount-group:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.5rem;
+  color: var(--text-tertiary);
+}
+
+.input-amount {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  padding-left: 2.5rem;
+  outline: none;
+  font-family: var(--font-mono);
+}
+
+/* Remove spinners */
+.input-amount::-webkit-outer-spin-button,
+.input-amount::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-text, .input-select {
+  width: 100%;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: 0.2s;
+}
+
+.input-text:focus, .input-select:focus {
+  background: rgba(255,255,255,0.05);
+  border-color: #6366f1;
+  outline: none;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--brand-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: var(--brand-glow);
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 0.5rem;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+}
+
+/* --- History List --- */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.group-header {
+  position: sticky;
+  top: 0;
+  background: rgba(9, 9, 11, 0.95); /* Matches body bg */
+  backdrop-filter: blur(5px);
+  padding: 1rem 0 0.5rem 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.group-date {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6366f1; /* Brand color for date */
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.group-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--glass-border), transparent);
+}
+
+.transaction-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.transaction-card:hover {
+  transform: scale(1.02);
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.t-icon-box {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 1.25rem;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.t-info { flex: 1; }
+
+.t-title {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.t-category {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.t-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: 0.2s;
+  padding: 0.5rem 0 0 0;
+}
+
+.transaction-card:hover .btn-delete {
+  opacity: 1;
+}
+
+.btn-delete:hover {
+  color: #ef4444;
+}
+
+/* --- Empty State --- */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-tertiary);
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: rgba(0,0,0,0.2);
+}
+
+/* --- DROPDOWN FIX --- */
+
+/* This targets the actual list of items when you click the dropdown */
+select option {
+  background-color: #09090b; /* Matches your app background */
+  color: #ffffff;
+}
+
+/* Optional: Fix specifically for the input-select class if needed */
+.input-select option {
+  background-color: #18181b; /* Slightly lighter dark for contrast */
+  color: #fff;
+}
+ 
+
+/* =========================================
+   HISTORY LIST STYLES (PRO VERSION)
+   ========================================= */
+
+.history-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+  border-color: rgba(99, 102, 241, 0.3); /* Brand color border on hover */
+}
+
+/* Action Buttons (The Icons) */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0; /* Hidden by default */
+  transform: translateX(10px);
+  transition: all 0.2s ease;
+}
+
+/* Show buttons when hovering the row */
+.history-item:hover .action-buttons {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.icon-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.icon-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.2); /* Red background */
+  color: #ef4444; /* Red icon */
+}

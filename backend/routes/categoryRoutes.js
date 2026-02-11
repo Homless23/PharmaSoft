@@ -4,8 +4,8 @@ const fetchuser = require('../middleware/fetchuser');
 const Category = require('../models/Category');
 const { body, validationResult } = require('express-validator');
 
-// ROUTE 1: Get All Categories
-router.get('/', fetchuser, async (req, res) => {
+// ROUTE 1: Get All Categories (e.g., GET /api/v1/categories)
+router.get('/categories', fetchuser, async (req, res) => {
     try {
         const categories = await Category.find({ user: req.user.id });
         res.json(categories);
@@ -15,8 +15,8 @@ router.get('/', fetchuser, async (req, res) => {
     }
 });
 
-// ROUTE 2: Add Category
-router.post('/add', fetchuser, [
+// ROUTE 2: Add Category (e.g., POST /api/v1/categories/add)
+router.post('/categories/add', fetchuser, [
     body('name', 'Name is required').isLength({ min: 1 }),
 ], async (req, res) => {
     try {
@@ -44,8 +44,8 @@ router.post('/add', fetchuser, [
     }
 });
 
-// ROUTE 3: Update Category Budget
-router.put('/:id', fetchuser, async (req, res) => {
+// ROUTE 3: Update Category Budget (e.g., PUT /api/v1/categories/:id)
+router.put('/categories/:id', fetchuser, async (req, res) => {
     const { budget } = req.body;
     try {
         let category = await Category.findById(req.params.id);

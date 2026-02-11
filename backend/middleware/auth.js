@@ -1,14 +1,14 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Backwards-compatible middleware used by some routes (alias for protect)
-// It checks for a JWT in the Authorization header or in cookies and attaches
-// the user document to `req.user` on success.
-module.exports = async function fetchuser(req, res, next) {
+// Middleware to protect routes - verifies JWT from Authorization header or cookie
+exports.protect = async (req, res, next) => {
   let token;
 
+  // 1) Try Authorization header (Bearer token)
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  // 2) Fall back to cookie (useful for browser-based auth where token is set as cookie)
   } else if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
   }
@@ -18,9 +18,10 @@ module.exports = async function fetchuser(req, res, next) {
   }
 
   try {
+    // Verify token and attach user to request object for downstream handlers
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id);
-    next();
+    return next();
   } catch (err) {
     return res.status(401).json({ success: false, error: 'Token failed' });
   }
