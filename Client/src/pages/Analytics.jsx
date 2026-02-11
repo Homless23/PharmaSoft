@@ -1,66 +1,76 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { GlobalContext } from '../context/GlobalState';
-import CategoryChart from '../components/CategoryChart';
-import TrendChart from '../components/TrendChart';
 
 const Analytics = () => {
-  const { transactions, getTransactions, loading } = useContext(GlobalContext);
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [dateRange, setDateRange] = useState('all');
+  const { transactions, getTransactions } = useContext(GlobalContext);
 
   useEffect(() => {
     getTransactions();
     // eslint-disable-next-line
   }, []);
 
-  // Filter Logic
-  const filteredData = transactions.filter(t => {
-    const categoryMatch = filterCategory === 'All' || t.category === filterCategory;
-    
-    if (dateRange === 'all') return categoryMatch;
-    
-    const transDate = new Date(t.createdAt);
-    const now = new Date();
-    if (dateRange === 'month') {
-      return categoryMatch && transDate.getMonth() === now.getMonth() && transDate.getFullYear() === now.getFullYear();
+  // Grouping logic for categories
+  const categoryTotals = transactions.reduce((acc, t) => {
+    if (t.amount < 0) {
+      const cat = t.category || 'Other';
+      acc[cat] = (acc[cat] || 0) + Math.abs(t.amount);
     }
-    return categoryMatch;
-  });
+    return acc;
+  }, {});
 
-  if (loading) return <div className="loader">Processing Financial Data...</div>;
+  const styles = {
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginTop: '30px' },
+    catCard: {
+      background: 'var(--bg-card)',
+      padding: '20px',
+      borderRadius: '16px',
+      border: '1px solid var(--border-subtle)',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    progressBar: (percent) => ({
+      height: '8px',
+      width: '100%',
+      background: 'var(--bg-app)',
+      borderRadius: '10px',
+      marginTop: '10px',
+      position: 'relative',
+      overflow: 'hidden'
+    }),
+    progressFill: (percent) => ({
+      width: `${percent}%`,
+      height: '100%',
+      background: 'var(--primary)',
+      borderRadius: '10px'
+    })
+  };
+
+  const totalExpense = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="analytics-page">
-      <header className="page-header-flex">
-        <h2 className="page-title">Spending Analytics</h2>
-        <div className="filter-group-premium">
-          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
-            <option value="all">All Time</option>
-            <option value="month">This Month</option>
-          </select>
-          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-            <option value="All">All Categories</option>
-            <option value="Food">Food</option>
-            <option value="Transportation">Transportation</option>
-            <option value="Healthcare">Healthcare</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Housing">Housing</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Stationary">Stationary</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-      </header>
+    <div style={{ padding: '20px' }}>
+      <h1>Spending Analytics</h1>
+      <p style={{ color: 'var(--text-muted)' }}>Where your money goes</p>
 
-      <div className="analytics-grid">
-        <div className="card chart-card main-chart">
-          <h3 className="card-label">Monthly Spending Trend</h3>
-          <TrendChart data={filteredData} />
-        </div>
-        <div className="card chart-card side-chart">
-          <h3 className="card-label">Category Distribution</h3>
-          <CategoryChart data={filteredData} />
-        </div>
+      <div style={styles.grid}>
+        {Object.entries(categoryTotals).map(([cat, amt]) => {
+          const percent = ((amt / totalExpense) * 100).toFixed(0);
+          return (
+            <div key={cat} style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '20px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontWeight: 600 }}>{cat}</span>
+                <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{percent}%</span>
+              </div>
+              <div style={styles.progressBar()}>
+                <div style={styles.progressFill(percent)}></div>
+              </div>
+              <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                Total: Rs {amt.toFixed(2)}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

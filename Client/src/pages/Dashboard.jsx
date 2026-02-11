@@ -1,49 +1,79 @@
-import React, { useEffect, useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { GlobalContext } from '../context/GlobalState';
-import DashboardStats from '../components/DashboardStats';
-import TransactionList from '../components/TransactionList';
 
 const Dashboard = () => {
-  const { getTransactions, transactions, loading } = useContext(GlobalContext);
+  const { transactions, getTransactions, user } = useContext(GlobalContext);
 
   useEffect(() => {
     getTransactions();
     // eslint-disable-next-line
   }, []);
 
-  if (loading) return <div className="loader">Refreshing Dashboard...</div>;
+  // --- Logic ---
+  const amounts = transactions.map(t => t.amount);
+  const total = amounts.reduce((acc, item) => (acc += item), 0).toFixed(2);
+  const income = amounts.filter(item => item > 0).reduce((acc, item) => (acc += item), 0).toFixed(2);
+  const expense = (amounts.filter(item => item < 0).reduce((acc, item) => (acc += item), 0) * -1).toFixed(2);
+
+  // --- Inline Styles ---
+  const styles = {
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      gap: '24px',
+      marginTop: '30px'
+    },
+    card: {
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border-subtle)',
+      padding: '24px',
+      borderRadius: '20px',
+      position: 'relative',
+      overflow: 'hidden'
+    },
+    label: { color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600' },
+    value: { fontSize: '2rem', fontWeight: '800', margin: '8px 0', color: 'var(--text-primary)' },
+    accent: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      width: '4px',
+      height: '100%',
+      background: 'var(--primary)'
+    }
+  };
 
   return (
-    <div className="dashboard-wrapper">
-      {/* High-Level Financial Metrics */}
-      <DashboardStats />
+    <div>
+      <header>
+        <h1 style={{ fontWeight: 800 }}>Fintech Command Center</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Welcome back, {user?.name || 'User'}</p>
+      </header>
 
-      <div className="dashboard-grid-premium">
-        {/* Main Feed */}
-        <div className="grid-item-main">
-          <TransactionList title="Recent Activity" />
+      <div style={styles.grid}>
+        {/* Total Balance Card */}
+        <div style={styles.card}>
+          <div style={styles.accent}></div>
+          <span style={styles.label}>Total Balance</span>
+          <h2 style={styles.value}>Rs {total}</h2>
+          <span style={{ color: '#10b981', fontSize: '0.85rem' }}>↑ 2.4% from last month</span>
         </div>
 
-        {/* Side Insights */}
-        <div className="grid-item-side">
-          <div className="card primary-gradient">
-            <h3 className="card-label">Monthly Goal</h3>
-            <div className="goal-content">
-              <span className="number">85%</span>
-              <p className="text-muted">of your savings target reached for February.</p>
-            </div>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: '85%' }}></div>
-            </div>
-          </div>
-
-          <div className="card" style={{ marginTop: '24px' }}>
-            <h3 className="card-label">Quick Tip</h3>
-            <p className="text-secondary" style={{ fontSize: '0.9rem' }}>
-              You spent 15% more on <strong>Food</strong> this week compared to last. Consider checking your budget.
-            </p>
-          </div>
+        {/* Income Card */}
+        <div style={{ ...styles.card, borderColor: '#10b981' }}>
+          <span style={styles.label}>Total Income</span>
+          <h2 style={{ ...styles.value, color: '#10b981' }}>Rs {income}</h2>
         </div>
+
+        {/* Expense Card */}
+        <div style={{ ...styles.card, borderColor: '#ef4444' }}>
+          <span style={styles.label}>Total Expenses</span>
+          <h2 style={{ ...styles.value, color: '#ef4444' }}>Rs {expense}</h2>
+        </div>
+      </div>
+
+      <div style={{ ...styles.card, marginTop: '40px', textAlign: 'center', minHeight: '200px' }}>
+         <p style={{ color: 'var(--text-muted)', marginTop: '80px' }}>Visualizing your spending data...</p>
       </div>
     </div>
   );

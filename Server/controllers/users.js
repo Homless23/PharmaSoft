@@ -28,7 +28,11 @@ exports.register = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email }
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Registration failed' });
+    console.error('Registration error:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Registration failed' 
+    });
   }
 };
 
@@ -70,7 +74,11 @@ exports.login = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email }
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Login Error' });
+    console.error('Login error:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Login Error' 
+    });
   }
 };
 

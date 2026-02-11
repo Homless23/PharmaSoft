@@ -2,28 +2,40 @@ import React, { useContext, useEffect } from 'react';
 import { GlobalContext } from '../context/GlobalState';
 
 const Notification = () => {
-  const { alert } = useContext(GlobalContext);
+  const { alert, clearAlert } = useContext(GlobalContext);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => clearAlert(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert, clearAlert]);
 
   if (!alert) return null;
 
-  const getIcon = (type) => {
-    switch(type) {
-      case 'success': return '✅';
-      case 'danger': return '❌';
-      case 'warning': return '⚠️';
-      default: return 'ℹ️';
+  const styles = {
+    toast: {
+      position: 'fixed',
+      top: '24px',
+      right: '24px',
+      padding: '16px 24px',
+      borderRadius: '12px',
+      background: alert.type === 'success' ? '#10b981' : '#ef4444',
+      color: 'white',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      fontWeight: 600,
+      animation: 'slideIn 0.3s ease-out'
     }
   };
 
   return (
-    <div className={`toast-container ${alert.type}`}>
-      <div className="toast-body">
-        <span className="toast-icon">{getIcon(alert.type)}</span>
-        <div className="toast-text">
-          <p className="toast-message">{alert.msg}</p>
-        </div>
-      </div>
-      <div className="toast-progress-bar"></div>
+    <div style={styles.toast}>
+      <span>{alert.type === 'success' ? '✅' : '❌'}</span>
+      {alert.msg}
     </div>
   );
 };

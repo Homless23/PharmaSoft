@@ -1,0 +1,73 @@
+/* --- FORM VALIDATION & ERROR STATES --- */
+.input-error {
+  border-color: var(--danger) !important;
+  background-color: rgba(255, 111, 145, 0.05) !important;
+}
+
+.input-error:focus {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(255, 111, 145, 0.1) !important;
+}
+
+.error-text {
+  display: block;
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* --- ERROR BOUNDARY --- */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 111, 145, 0.1), rgba(124, 157, 255, 0.1));
+  padding: 20px;
+}
+
+.error-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+.error-card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+  color: var(--danger);
+}
+
+.error-message {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.error-card button {
+  margin: 0 8px;
+  min-width: 120px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--primary);
+  color: white;
+}

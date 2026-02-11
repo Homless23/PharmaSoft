@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
 
@@ -22,26 +23,34 @@ const app = express();
 
 // 2. Security Middleware
 app.use(helmet()); // Set secure HTTP headers
+app.use(mongoSanitize()); // Sanitize MongoDB queries
 app.use(express.json({ limit: '10kb' })); // Body limit to prevent DOS
 
 // 3. Hardened CORS
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://your-production-app.com'] 
-    : ['http://localhost:3000'],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    : function (origin, callback) {
+        // Allow localhost with any port during development
+        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 
 // 4. Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+//const limiter = rateLimit({
+  //windowMs: 15 * 60 * 1000, // 15 minutes
+  //max: 100, // Limit each IP to 100 requests per window
+  //message: 'Too many requests from this IP, please try again later.'
+//});
+//app.use('/api/', limiter);
 
 // 5. Routes
 app.use('/api/auth', require('./routes/users'));
