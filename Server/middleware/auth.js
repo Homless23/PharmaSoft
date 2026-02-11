@@ -1,8 +1,12 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = function (req, res, next) {
-  // Extract token from custom header
-  const token = req.header('x-auth-token');
+  const bearerToken = req.header('authorization')?.startsWith('Bearer ')
+    ? req.header('authorization').split(' ')[1]
+    : null;
+
+  // Support both legacy x-auth-token and standard Bearer auth.
+  const token = req.header('x-auth-token') || bearerToken;
 
   // Strict check for token presence
   if (!token) {
@@ -17,6 +21,6 @@ module.exports = function (req, res, next) {
     req.user = decoded.id;
     next();
   } catch (err) {
-    res.status(401).json({ success: false, error: 'Token is not valid or has expired' });
+    return res.status(401).json({ success: false, error: 'Token is not valid or has expired' });
   }
 };

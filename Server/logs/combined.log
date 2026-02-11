@@ -58,3 +58,5 @@
 {"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T17:03:48.406Z"}
 {"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T17:04:23.959Z"}
 {"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T17:04:24.895Z"}
+{"level":"info","message":"🚀 Fintech Server running on port 5000 in development mode","timestamp":"2026-02-11T18:00:17.336Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T18:00:22.216Z"}

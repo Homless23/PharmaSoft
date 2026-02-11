@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
-const { register, login, getMe, updateDetails, updatePassword, deleteAccount } = require('../controllers/users');
+const { register, login, getMe, updateDetails, updatePassword, getLogs, deleteAccount } = require('../controllers/users');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
@@ -22,6 +22,7 @@ router.put('/updatepassword', [
   check('currentPassword', 'Current password is required').not().isEmpty(),
   check('newPassword', 'New password must be 6+ chars').isLength({ min: 6 })
 ], auth, validate, updatePassword);
+router.get('/logs', auth, getLogs);
 router.delete('/deleteaccount', auth, deleteAccount);
 
 module.exports = router;

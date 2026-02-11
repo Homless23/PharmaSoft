@@ -89,11 +89,23 @@ exports.getMe = async (req, res) => {
 // @route   PUT /api/auth/updatedetails
 exports.updateDetails = async (req, res) => {
   try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-      profileImage: req.body.profileImage
-    };
+    const fieldsToUpdate = {};
+
+    if (typeof req.body.name === 'string') {
+      fieldsToUpdate.name = req.body.name;
+    }
+
+    if (typeof req.body.email === 'string') {
+      fieldsToUpdate.email = req.body.email;
+    }
+
+    if (typeof req.body.profileImage === 'string') {
+      fieldsToUpdate.profileImage = req.body.profileImage;
+    }
+
+    if (req.body.theme === 'dark' || req.body.theme === 'light') {
+      fieldsToUpdate.theme = req.body.theme;
+    }
 
     const user = await User.findByIdAndUpdate(req.user, fieldsToUpdate, {
       new: true,
