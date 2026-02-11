@@ -1,9 +1,10 @@
-import React, { createContext, useReducer, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import AppReducer from './AppReducer';
 import * as types from './types';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const CACHE_DURATION = 5 * 60 * 1000; // Cache for 5 minutes
 
 const initialState = {
   transactions: [],
@@ -14,13 +15,28 @@ const initialState = {
   loading: true,
   user: null,
   error: null,
-  alert: null
+  alert: null,
+  pagination: {
+    currentPage: 1,
+    pages: 1,
+    total: 0,
+    limit: 10
+  },
+  summary: null,
+  analytics: null
 };
 
 export const GlobalContext = createContext(initialState);
 
 export const GlobalProvider = ({ children }) => {
   const [state, dispatch] = useReducer(AppReducer, initialState);
+  
+  // Cache tracking refs - prevents unnecessary refetches
+  const cacheRef = useRef({
+    transactionsLastFetch: 0,
+    summaryLastFetch: 0,
+    analyticsLastFetch: 0
+  });
 
   // Configure axios with Bearer token
   useEffect(() => {
@@ -158,13 +174,63 @@ export const GlobalProvider = ({ children }) => {
 
   // --- DATA ACTIONS (OPTIMIZED) ---
 
-  const getTransactions = useCallback(async () => {
+  const getTransactions = useCallback(async (page = 1, limit = 10, forceRefresh = false) => {
+    // Skip if we have cached data and not forcing refresh
+    const now = Date.now();
+    if (!forceRefresh && cacheRef.current.transactionsLastFetch && 
+        (now - cacheRef.current.transactionsLastFetch) < CACHE_DURATION) {
+      return;
+    }
+
     dispatch({ type: types.SET_LOADING });
     try {
-      const res = await axios.get(`${API_BASE}/transactions`);
-      dispatch({ type: types.GET_TRANSACTIONS, payload: res.data.data });
+      const res = await axios.get(`${API_BASE}/transactions?page=${page}&limit=${limit}`);
+      dispatch({ type: types.GET_TRANSACTIONS, payload: res.data });
+      cacheRef.current.transactionsLastFetch = now;
     } catch (err) { handleError(err, "Data fetch failed"); }
   }, [handleError]);
+
+  const getTransactionsByPage = useCallback(async (page, limit = 10) => {
+    return getTransactions(page, limit, false);
+  }, [getTransactions]);
+
+  // NEW: Get summary data (income, expense, balance) - lightweight endpoint
+  const getSummary = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && cacheRef.current.summaryLastFetch && 
+        (now - cacheRef.current.summaryLastFetch) < CACHE_DURATION) {
+      return state.summary;
+    }
+
+    try {
+      const res = await axios.get(`${API_BASE}/transactions/summary`);
+      dispatch({ type: types.SET_SUMMARY, payload: res.data.data });
+      cacheRef.current.summaryLastFetch = now;
+      return res.data.data;
+    } catch (err) { 
+      console.error("Summary fetch failed (not critical):", err);
+      return null;
+    }
+  }, [state.summary]);
+
+  // NEW: Get analytics data (category breakdown) - lightweight endpoint
+  const getAnalytics = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    if (!forceRefresh && cacheRef.current.analyticsLastFetch && 
+        (now - cacheRef.current.analyticsLastFetch) < CACHE_DURATION) {
+      return state.analytics;
+    }
+
+    try {
+      const res = await axios.get(`${API_BASE}/transactions/analytics`);
+      dispatch({ type: types.SET_ANALYTICS, payload: res.data.data });
+      cacheRef.current.analyticsLastFetch = now;
+      return res.data.data;
+    } catch (err) { 
+      console.error("Analytics fetch failed (not critical):", err);
+      return null;
+    }
+  }, [state.analytics]);
 
   const addTransaction = useCallback(async (t) => {
     try {
@@ -204,6 +270,9 @@ export const GlobalProvider = ({ children }) => {
     register,
     logout,
     getTransactions,
+    getTransactionsByPage,
+    getSummary,
+    getAnalytics,
     addTransaction,
     deleteTransaction,
     toggleTheme,
@@ -220,6 +289,9 @@ export const GlobalProvider = ({ children }) => {
     register,
     logout,
     getTransactions,
+    getTransactionsByPage,
+    getSummary,
+    getAnalytics,
     addTransaction,
     deleteTransaction,
     toggleTheme,

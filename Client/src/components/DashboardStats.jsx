@@ -54,4 +54,4 @@ const DashboardStats = () => {
   );
 };
 
-export default DashboardStats;
+export default React.memo(DashboardStats);

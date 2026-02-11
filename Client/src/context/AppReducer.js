@@ -60,7 +60,13 @@ const AppReducer = (state, action) => {
       return {
         ...state,
         loading: false,
-        transactions: action.payload
+        transactions: action.payload.data || action.payload,
+        pagination: {
+          currentPage: action.payload.currentPage || 1,
+          pages: action.payload.pages || 1,
+          total: action.payload.total || 0,
+          limit: action.payload.limit || 10
+        }
       };
 
     case types.ADD_TRANSACTION:
@@ -105,6 +111,19 @@ const AppReducer = (state, action) => {
         ...state,
         logs: action.payload,
         loading: false
+      };
+
+    // --- SUMMARY & ANALYTICS (Cached Data) ---
+    case types.SET_SUMMARY:
+      return {
+        ...state,
+        summary: action.payload
+      };
+
+    case types.SET_ANALYTICS:
+      return {
+        ...state,
+        analytics: action.payload
       };
 
     default:

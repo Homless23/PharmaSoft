@@ -18,4 +18,5 @@ const TransactionItem = ({ transaction }) => {
     );
 };
 
-export default TransactionItem;
+// Memoize to prevent re-renders when parent updates but transaction prop hasn't changed
+export default React.memo(TransactionItem);

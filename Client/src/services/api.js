@@ -28,4 +28,14 @@ api.interceptors.response.use(
     }
 );
 
+// Transaction API endpoints with pagination support
+export const transactionAPI = {
+    getTransactions: (page = 1, limit = 10) => 
+        api.get(`/transactions?page=${page}&limit=${limit}`),
+    addTransaction: (data) => 
+        api.post('/transactions', data),
+    deleteTransaction: (id) => 
+        api.delete(`/transactions/${id}`)
+};
+
 export default api;

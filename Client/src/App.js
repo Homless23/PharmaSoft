@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GlobalProvider, GlobalContext } from './context/GlobalState';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -9,12 +9,20 @@ import Notification from './components/Notification';
 import Login from './components/Login';
 import Register from './components/Register';
 
-// Pages
-import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
-import Analytics from './pages/Analytics';
-import History from './pages/History';
-import Settings from './pages/Settings';
+// Lazy load pages for code splitting
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const History = lazy(() => import('./pages/History'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Budget = lazy(() => import('./pages/Budget'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <div className="loader">Loading...</div>
+  </div>
+);
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useContext(GlobalContext);
@@ -42,11 +50,12 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           {/* Secure Protected Routes */}
-          <Route path="/" element={<PrivateRoute><MainLayout><Dashboard /></MainLayout></PrivateRoute>} />
-          <Route path="/transactions" element={<PrivateRoute><MainLayout><Transactions /></MainLayout></PrivateRoute>} />
-          <Route path="/analytics" element={<PrivateRoute><MainLayout><Analytics /></MainLayout></PrivateRoute>} />
-          <Route path="/history" element={<PrivateRoute><MainLayout><History /></MainLayout></PrivateRoute>} />
-          <Route path="/settings" element={<PrivateRoute><MainLayout><Settings /></MainLayout></PrivateRoute>} />
+          <Route path="/" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><Dashboard /></Suspense></MainLayout></PrivateRoute>} />
+          <Route path="/transactions" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><Transactions /></Suspense></MainLayout></PrivateRoute>} />
+          <Route path="/analytics" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><Analytics /></Suspense></MainLayout></PrivateRoute>} />
+          <Route path="/history" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><History /></Suspense></MainLayout></PrivateRoute>} />
+          <Route path="/settings" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><Settings /></Suspense></MainLayout></PrivateRoute>} />
+          <Route path="/budget" element={<PrivateRoute><MainLayout><Suspense fallback={<PageLoader />}><Budget /></Suspense></MainLayout></PrivateRoute>} />
           
           {/* Default Redirect */}
           <Route path="*" element={<Navigate to="/" />} />

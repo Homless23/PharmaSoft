@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
-const { getTransactions, addTransaction, deleteTransaction } = require('../controllers/transactions');
+const { getTransactions, addTransaction, deleteTransaction, getSummary, getAnalytics } = require('../controllers/transactions');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
@@ -11,6 +11,15 @@ const transactionRules = [
   check('amount', 'Amount must be a non-zero number').isNumeric().not().equals('0'),
   check('category', 'Please select a valid category').not().isEmpty()
 ];
+
+// Special routes (must come before /:id route)
+router
+  .route('/summary')
+  .get(auth, getSummary);
+
+router
+  .route('/analytics')
+  .get(auth, getAnalytics);
 
 router
   .route('/')
