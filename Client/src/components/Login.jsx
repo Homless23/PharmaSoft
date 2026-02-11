@@ -1,62 +1,44 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { GlobalContext } from '../context/GlobalState';
-import { useNavigate } from 'react-router-dom'; // Requires react-router-dom
 
-export const Login = () => {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  const { login, error, isAuthenticated, clearErrors } = useContext(GlobalContext);
+
+  const { login, isAuthenticated } = useContext(GlobalContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If logged in, redirect to Dashboard immediately
     if (isAuthenticated) {
-      navigate('/'); 
+      navigate('/');
     }
-    // Clear errors when component loads
-    clearErrors();
-    // eslint-disable-next-line
   }, [isAuthenticated, navigate]);
 
-  const onSubmit = e => {
+  const onSubmit = (e) => {
     e.preventDefault();
     login({ email, password });
   };
 
   return (
-    // Change <div className="card" ...> to:
-<div className="glass" style={{ maxWidth: '400px', margin: '3rem auto' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Login</h2>
-      
-      {error && <div className="error-msg">{error}</div>}
-      
-      <form onSubmit={onSubmit}>
+    <div className="auth-container">
+      <form onSubmit={onSubmit} className="auth-card">
+        <h2>Welcome Back</h2>
         <div className="form-group">
-          <label>Email Address</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            className="form-input" 
-            required 
-          />
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email..." required />
         </div>
         <div className="form-group">
           <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            className="form-input" 
-            required 
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password..." required />
         </div>
-        <button type="submit" className="btn-primary">Login</button>
+        <button className="btn-primary main-submit">Login</button>
+        <p className="auth-footer">
+          Don't have an account? <Link to="/register">Register</Link>
+        </p>
       </form>
-      <p style={{ marginTop: '1rem', textAlign: 'center' }}>
-        No account? <a href="/register" style={{ color: '#4f46e5' }}>Register here</a>
-      </p>
     </div>
   );
 };
+
+export default Login; // Ensure this is a DEFAULT export

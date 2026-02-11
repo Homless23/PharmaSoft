@@ -1,70 +1,49 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { GlobalContext } from '../context/GlobalState';
-import { useNavigate } from 'react-router-dom';
 
-export const Register = () => {
+const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const { register, error, isAuthenticated, clearErrors } = useContext(GlobalContext);
+  const { register, isAuthenticated } = useContext(GlobalContext);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/');
     }
-    clearErrors();
-    // eslint-disable-next-line
   }, [isAuthenticated, navigate]);
 
-  const onSubmit = e => {
+  const onSubmit = (e) => {
     e.preventDefault();
     register({ name, email, password });
   };
 
   return (
-    <div className="glass" style={{ maxWidth: '400px', margin: '3rem auto' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Register</h2>
-      
-      {error && <div className="error-msg">{error}</div>}
-      
-      <form onSubmit={onSubmit}>
+    <div className="auth-container">
+      <form onSubmit={onSubmit} className="auth-card">
+        <h2>Create Account</h2>
         <div className="form-group">
           <label>Name</label>
-          <input 
-            type="text" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
-            className="form-input" 
-            required 
-          />
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter name..." required />
         </div>
         <div className="form-group">
-          <label>Email Address</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            className="form-input" 
-            required 
-          />
+          <label>Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email..." required />
         </div>
         <div className="form-group">
           <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            className="form-input" 
-            required 
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password..." required />
         </div>
-        <button type="submit" className="btn-primary">Create Account</button>
+        <button className="btn-primary main-submit">Register</button>
+        <p className="auth-footer">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </form>
-      <p style={{ marginTop: '1rem', textAlign: 'center' }}>
-        Already have an account? <a href="/login" style={{ color: '#4f46e5' }}>Login</a>
-      </p>
     </div>
   );
 };
+
+export default Register; // Ensure this is a DEFAULT export

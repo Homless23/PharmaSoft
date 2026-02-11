@@ -1,93 +1,65 @@
-import React, { useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { GlobalContext } from '../context/GlobalState';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+import CategoryChart from '../components/CategoryChart';
+import TrendChart from '../components/TrendChart';
 
 const Analytics = () => {
-  const { transactions } = useContext(GlobalContext);
+  const { transactions, getTransactions, loading } = useContext(GlobalContext);
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [dateRange, setDateRange] = useState('all');
 
-  // 1. Define Static Budget Limits (Will move to DB in later phase)
-  const budgetLimits = {
-    Food: 15000,
-    Transportation: 8000,
-    Entertainment: 5000,
-    Healthcare: 10000,
-    Housing: 35000,
-    Utilities: 12000,
-    Stationary: 2000,
-    Other: 5000
-  };
+  useEffect(() => {
+    getTransactions();
+    // eslint-disable-next-line
+  }, []);
 
-  // 2. Calculate Actual Spending per Category
-  const categorySpending = {};
-  transactions.forEach(t => {
-    if (t.amount < 0) {
-      const cat = t.category || 'Other';
-      categorySpending[cat] = (categorySpending[cat] || 0) + Math.abs(t.amount);
+  // Filter Logic
+  const filteredData = transactions.filter(t => {
+    const categoryMatch = filterCategory === 'All' || t.category === filterCategory;
+    
+    if (dateRange === 'all') return categoryMatch;
+    
+    const transDate = new Date(t.createdAt);
+    const now = new Date();
+    if (dateRange === 'month') {
+      return categoryMatch && transDate.getMonth() === now.getMonth() && transDate.getFullYear() === now.getFullYear();
     }
+    return categoryMatch;
   });
 
+  if (loading) return <div className="loader">Processing Financial Data...</div>;
+
   return (
-    <div className="analytics-container">
-      <div className="header-flex">
-        <h2>Analytics & Budgets</h2>
-        <button className="btn-secondary">✨ Auto-Set Budgets</button>
-      </div>
+    <div className="analytics-page">
+      <header className="page-header-flex">
+        <h2 className="page-title">Spending Analytics</h2>
+        <div className="filter-group-premium">
+          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+            <option value="all">All Time</option>
+            <option value="month">This Month</option>
+          </select>
+          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+            <option value="All">All Categories</option>
+            <option value="Food">Food</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Housing">Housing</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Stationary">Stationary</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </header>
 
       <div className="analytics-grid">
-        {/* Charts remain in the top grid as we built before */}
-        <div className="card chart-main"><h3>Spending Trend</h3>{/* Line Chart */}</div>
-        <div className="card chart-side"><h3>Spending Split</h3>{/* Doughnut Chart */}</div>
-      </div>
-
-      {/* NEW: CATEGORY BUDGET UTILIZATION SECTION */}
-      <div className="card budget-card">
-        <h3 className="card-label">Category Budgets</h3>
-        <div className="budget-grid">
-          {Object.keys(budgetLimits).map(category => {
-            const spent = categorySpending[category] || 0;
-            const limit = budgetLimits[category];
-            const percent = Math.min((spent / limit) * 100, 100);
-            
-            return (
-              <div key={category} className="budget-row">
-                <div className="budget-info">
-                  <span className="cat-name">{category}</span>
-                  <span className="cat-values">
-                    Rs {spent.toLocaleString()} / <span className="text-muted">{limit.toLocaleString()}</span>
-                  </span>
-                </div>
-                <div className="meter-track">
-                  <div 
-                    className={`meter-fill ${percent > 90 ? 'critical' : percent > 70 ? 'warning' : ''}`} 
-                    style={{ width: `${percent}%` }}
-                  ></div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="card chart-card main-chart">
+          <h3 className="card-label">Monthly Spending Trend</h3>
+          <TrendChart data={filteredData} />
+        </div>
+        <div className="card chart-card side-chart">
+          <h3 className="card-label">Category Distribution</h3>
+          <CategoryChart data={filteredData} />
         </div>
       </div>
     </div>

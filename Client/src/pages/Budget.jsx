@@ -1,61 +1,86 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { GlobalContext } from '../context/GlobalState';
 
 const Budget = () => {
-  // In a production app, these would be fetched from a 'budgets' collection in MongoDB
-  const [budgets, setBudgets] = useState({
-    Food: 15000,
-    Transportation: 8000,
-    Entertainment: 5000,
-    Healthcare: 10000,
-    Housing: 35000,
-    Utilities: 12000,
-    Stationary: 2000,
-    Other: 5000
-  });
+  const { transactions, budget, getBudget, updateBudget, loading } = useContext(GlobalContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({});
 
-  const handleUpdate = (category, value) => {
-    setBudgets({ ...budgets, [category]: Number(value) });
+  useEffect(() => {
+    getBudget();
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    if (budget) setFormData(budget);
+  }, [budget]);
+
+  const calculateSpent = (category) => {
+    return transactions
+      .filter(t => t.category === category && t.amount < 0)
+      .reduce((acc, t) => acc + Math.abs(t.amount), 0);
   };
 
-  const totalAllocated = Object.values(budgets).reduce((acc, curr) => acc + curr, 0);
+  const handleSave = async () => {
+    await updateBudget(formData);
+    setIsEditing(false);
+  };
+
+  if (loading || !budget) return <div className="loader">Loading Goals...</div>;
+
+  const categories = Object.keys(budget.categoryLimits);
 
   return (
-    <div className="container budget-page">
-      <div className="header-flex">
-        <h2>Budget Planning</h2>
-        <div className="allocation-summary glass">
-          <span className="text-muted">Total Monthly Allocation:</span>
-          <span className="font-bold"> Rs {totalAllocated.toLocaleString()}</span>
-        </div>
-      </div>
+    <div className="budget-page">
+      <header className="page-header-flex">
+        <h2 className="page-title">Budget Planning</h2>
+        <button className="btn-primary" onClick={() => isEditing ? handleSave() : setIsEditing(true)}>
+          {isEditing ? 'Save Budgets' : 'Edit Limits'}
+        </button>
+      </header>
 
-      <div className="card budget-form-card">
-        <div className="budget-settings-grid">
-          {Object.entries(budgets).map(([category, limit]) => (
-            <div key={category} className="budget-setting-row">
-              <div className="setting-info">
-                <span className="setting-label">{category}</span>
-                <p className="text-muted text-sm">Monthly limit for {category.toLowerCase()}</p>
+      <div className="budget-grid">
+        {categories.map(cat => {
+          const spent = calculateSpent(cat);
+          const limit = isEditing ? formData.categoryLimits[cat] : budget.categoryLimits[cat];
+          const percent = limit > 0 ? (spent / limit) * 100 : 0;
+          const statusClass = percent >= 100 ? 'danger' : percent >= 80 ? 'warning' : 'success';
+
+          return (
+            <div key={cat} className="card budget-card">
+              <div className="budget-info">
+                <span className="cat-name">{cat}</span>
+                <span className={`cat-status ${statusClass}`}>
+                  {percent >= 100 ? 'Overspent' : `${Math.round(percent)}% Used`}
+                </span>
               </div>
-              <div className="setting-input-wrapper">
-                <span className="currency-prefix">Rs</span>
-                <input 
-                  type="number" 
-                  value={limit} 
-                  onChange={(e) => handleUpdate(category, e.target.value)}
-                  className="budget-input"
-                />
+              
+              <div className="budget-math">
+                <span className="spent">Rs {spent}</span>
+                {isEditing ? (
+                  <input 
+                    type="number" 
+                    className="budget-input"
+                    value={formData.categoryLimits[cat]} 
+                    onChange={(e) => setFormData({
+                      ...formData, 
+                      categoryLimits: { ...formData.categoryLimits, [cat]: Number(e.target.value) }
+                    })}
+                  />
+                ) : (
+                  <span className="limit">of Rs {limit}</span>
+                )}
+              </div>
+
+              <div className="progress-track-large">
+                <div 
+                  className={`progress-fill-large ${statusClass}`} 
+                  style={{ width: `${Math.min(percent, 100)}%` }}
+                ></div>
               </div>
             </div>
-          ))}
-        </div>
-        
-        <div className="form-footer">
-          <button className="btn-primary" style={{ width: 'auto', padding: '12px 40px' }}>
-            Save Budget Plan
-          </button>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
