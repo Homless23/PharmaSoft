@@ -274,7 +274,7 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
                       style={{
                         width: '100%',
                         padding: '12px 16px',
-                        background: category === cat ? '#667eea' : 'transparent',
+                        background: category === cat ? '#667eea' : 'var(--bg-card)',
                         color: category === cat ? 'white' : 'var(--text-primary)',
                         border: 'none',
                         textAlign: 'left',
@@ -291,7 +291,7 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
                       }}
                       onMouseLeave={(e) => {
                         if (category !== cat) {
-                          e.target.style.background = 'transparent';
+                          e.target.style.background = 'var(--bg-card)';
                         }
                       }}
                     >
