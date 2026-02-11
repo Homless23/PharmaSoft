@@ -34,32 +34,34 @@ const MainLayout = ({ children }) => {
           position: 'fixed',
           bottom: '40px',
           right: '40px',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
+          padding: '14px 28px',
+          borderRadius: '50px',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           border: 'none',
-          boxShadow: '0 8px 24px rgba(102, 126, 234, 0.35)',
+          boxShadow: '0 12px 32px rgba(102, 126, 234, 0.4)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '1.5rem',
+          gap: '8px',
+          fontSize: '1rem',
+          fontWeight: '600',
           transition: 'all 0.3s ease',
           zIndex: 999
         }}
         onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.1)';
-          e.target.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.45)';
+          e.target.style.transform = 'scale(1.08)';
+          e.target.style.boxShadow = '0 16px 40px rgba(102, 126, 234, 0.5)';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.35)';
+          e.target.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.4)';
         }}
         title="Add Transaction"
       >
-        +
+        <span>✨</span>
+        <span>Add Transaction</span>
       </button>
 
       {/* Add Transaction Modal */}
