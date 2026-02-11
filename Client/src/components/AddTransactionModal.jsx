@@ -10,8 +10,34 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
   const [category, setCategory] = useState('Food');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [errors, setErrors] = useState({});
+  const [customCategories, setCustomCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const { addTransaction, setAlert } = useContext(GlobalContext);
+
+  const defaultCategories = ['Food', 'Transportation', 'Healthcare', 'Entertainment', 'Housing', 'Utilities', 'Stationary', 'Other'];
+  const allCategories = [...defaultCategories, ...customCategories];
+  const categoryEmojis = {
+    'Food': '🍔',
+    'Transportation': '🚗',
+    'Healthcare': '🏥',
+    'Entertainment': '🎬',
+    'Housing': '🏠',
+    'Utilities': '💡',
+    'Stationary': '📝',
+    'Other': '📦'
+  };
+
+  const handleAddCustomCategory = () => {
+    const trimmedCategory = newCategory.trim();
+    if (trimmedCategory && !allCategories.includes(trimmedCategory)) {
+      setCustomCategories([...customCategories, trimmedCategory]);
+      setCategory(trimmedCategory);
+      setNewCategory('');
+      setShowCustomInput(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -187,34 +213,122 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
           }}>
             Category
           </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: '10px',
-              border: '2px solid var(--border-subtle)',
-              background: 'var(--bg-card)',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxSizing: 'border-box'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#667eea'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
-          >
-            <option value="Food">🍔 Food</option>
-            <option value="Transportation">🚗 Transportation</option>
-            <option value="Healthcare">🏥 Healthcare</option>
-            <option value="Entertainment">🎬 Entertainment</option>
-            <option value="Housing">🏠 Housing</option>
-            <option value="Utilities">💡 Utilities</option>
-            <option value="Stationary">📝 Stationary</option>
-            <option value="Other">📦 Other</option>
-          </select>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setShowCustomInput(false);
+              }}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '2px solid var(--border-subtle)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxSizing: 'border-box',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23667eea' d='M0 0l6 8 6-8H0z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                paddingRight: '40px'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+            >
+              {allCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {categoryEmojis[cat] || '📌'} {cat}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowCustomInput(!showCustomInput)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '2px solid var(--border-subtle)',
+                background: 'var(--bg-app)',
+                color: 'var(--text-muted)',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontSize: '1rem'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#667eea';
+                e.target.style.color = 'white';
+                e.target.style.borderColor = '#667eea';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'var(--bg-app)';
+                e.target.style.color = 'var(--text-muted)';
+                e.target.style.borderColor = 'var(--border-subtle)';
+              }}
+            >
+              ➕
+            </button>
+          </div>
+
+          {/* Custom Category Input */}
+          {showCustomInput && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddCustomCategory();
+                  }
+                }}
+                placeholder="Enter new category..."
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '2px solid #667eea',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box'
+                }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomCategory}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: '#10b981',
+                  color: 'white',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontSize: '0.9rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                Add
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Date Field */}
