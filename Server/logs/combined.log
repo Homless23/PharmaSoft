@@ -1,0 +1,52 @@
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T08:58:45.375Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T08:58:49.058Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:01:10.374Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:01:11.788Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:01:45.791Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:01:46.819Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:01:49.489Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:01:50.263Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:02:08.336Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:02:09.111Z"}
+{"level":"error","message":"Unhandled Rejection: Not authorized, no token","timestamp":"2026-02-11T09:07:27.524Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:09:36.484Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:09:38.020Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:10:48.261Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:10:49.780Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:17:01.732Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:17:02.960Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:23:12.052Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:23:13.509Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:24:25.735Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:24:27.003Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:25:51.678Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:25:54.601Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:26:26.360Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:26:27.495Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:36:55.194Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:37:06.577Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:41:53.514Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:41:58.389Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:41:59.103Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:42:01.109Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:42:01.922Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:43:26.726Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:43:28.171Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:43:38.385Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:43:39.355Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:45:56.458Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:46:01.458Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T09:46:04.881Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T09:46:05.833Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T10:09:00.287Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T10:09:01.806Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T10:09:51.289Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T10:09:52.188Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T14:56:03.691Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T14:56:05.100Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T15:03:01.357Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T15:03:03.055Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T15:11:15.549Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T15:11:17.400Z"}
+{"level":"info","message":"Server running in development mode on port 5000","timestamp":"2026-02-11T15:39:33.316Z"}
+{"level":"info","message":"MongoDB Connected: ac-4pm9b5x-shard-00-00.sgornpj.mongodb.net","timestamp":"2026-02-11T15:39:35.512Z"}
