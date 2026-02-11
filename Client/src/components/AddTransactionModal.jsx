@@ -13,6 +13,7 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
   const [customCategories, setCustomCategories] = useState([]);
   const [newCategory, setNewCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const { addTransaction, setAlert } = useContext(GlobalContext);
 
@@ -214,39 +215,93 @@ const AddTransactionModal = ({ isOpen, onClose }) => {
             Category
           </label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setShowCustomInput(false);
-              }}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                borderRadius: '10px',
-                border: '2px solid var(--border-subtle)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                fontSize: '1rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxSizing: 'border-box',
-                appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23667eea' d='M0 0l6 8 6-8H0z'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 16px center',
-                paddingRight: '40px'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
-            >
-              {allCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {categoryEmojis[cat] || '📌'} {cat}
-                </option>
-              ))}
-            </select>
+            {/* Custom Dropdown */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '2px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  textAlign: 'left'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border-subtle)'}
+              >
+                <span>{categoryEmojis[category] || '📌'} {category}</span>
+                <span style={{ fontSize: '0.8rem' }}>▼</span>
+              </button>
+
+              {/* Dropdown List */}
+              {showCategoryDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg-card)',
+                    border: '2px solid #667eea',
+                    borderRadius: '10px',
+                    marginTop: '4px',
+                    zIndex: 1001,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(102, 126, 234, 0.2)'
+                  }}
+                >
+                  {allCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setCategory(cat);
+                        setShowCategoryDropdown(false);
+                        setShowCustomInput(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: category === cat ? '#667eea' : 'transparent',
+                        color: category === cat ? 'white' : 'var(--text-primary)',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        fontSize: '1rem',
+                        fontWeight: category === cat ? '600' : '500',
+                        borderBottom: '1px solid var(--border-subtle)'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (category !== cat) {
+                          e.target.style.background = 'var(--bg-app)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (category !== cat) {
+                          e.target.style.background = 'transparent';
+                        }
+                      }}
+                    >
+                      {categoryEmojis[cat] || '📌'} {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => setShowCustomInput(!showCustomInput)}
