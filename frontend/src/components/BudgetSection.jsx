@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { GlobalContext } from '../context/GlobalState';
+import { GlobalContext } from '../context/globalContext';
 
 const BudgetSection = () => {
   const { categories, expenses, editBudget } = useContext(GlobalContext);

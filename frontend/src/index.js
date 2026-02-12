@@ -1,23 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { GlobalProvider } from './context/GlobalState';
+import { GlobalProvider } from './context/globalContext';
 import axios from 'axios';
-import { BrowserRouter } from 'react-router-dom'; // Router wrapper for the app
+import { BrowserRouter } from 'react-router-dom';
+import './index.css';
 
-// Axios global defaults used by non-hook code (most code uses the api instance in GlobalState)
-// Keep these defaults so any direct axios calls still target the backend and send cookies.
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+// Configure axios global defaults for all API requests
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 axios.defaults.withCredentials = true;
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <GlobalProvider>
-      {/* WRAP APP IN BROWSER ROUTER */}
-      <BrowserRouter> 
+    <BrowserRouter>
+      <GlobalProvider>
         <App />
-      </BrowserRouter>
-    </GlobalProvider>
+      </GlobalProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );

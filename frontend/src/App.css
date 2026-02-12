@@ -398,3 +398,29 @@ select option {
   background: rgba(239, 68, 68, 0.2); /* Red background */
   color: #ef4444; /* Red icon */
 }
+
+/* Error Container */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #09090b 0%, #1a1a2e 100%);
+  color: var(--text-main);
+}
+
+.error-container h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--danger);
+}
+
+.error-container p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 400px;
+  text-align: center;
+  margin-bottom: 2rem;
+}

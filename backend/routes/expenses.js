@@ -1,22 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    getExpenses, 
-    addExpense, 
-    deleteExpense,
-    updateExpense // Assuming you have this, if not remove it
-} = require('../controllers/expenseController');
+const { addExpense, getExpenses, deleteExpense } = require('../controllers/expenseController');
+const { protect } = require('../middleware/authMiddleware');
 
-// --- THE FIX: Import 'protect' from the new auth.js middleware ---
-const { protect } = require('../middleware/auth'); 
-
-// Apply protection to all routes - prefixed with /expenses
-router.route('/expenses')
-    .get(protect, getExpenses)
-    .post(protect, addExpense);
-
-router.route('/expenses/:id')
-    .delete(protect, deleteExpense)
-    // .put(protect, updateExpense); // Uncomment if you have update logic
+// All these routes are protected
+router.post('/add-expense', protect, addExpense);
+router.get('/get-expenses', protect, getExpenses);
+router.delete('/delete-expense/:id', protect, deleteExpense);
 
 module.exports = router;

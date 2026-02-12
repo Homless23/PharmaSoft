@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGlobalContext } from '../context/GlobalState';
+import { useGlobalContext } from '../context/globalContext';
 
 // Components
 import ExpenseChart from '../components/ExpenseChart';

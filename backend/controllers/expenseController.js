@@ -1,93 +1,62 @@
-const Expense = require('../models/Expense'); // <--- Matches the file created in Step 1
+const Expense = require('../models/Expense');
 
-// @desc    Get all expenses for the logged in user
-// @route   GET /api/v1/transactions
-// @access  Private
-exports.getExpenses = async (req, res, next) => {
-  try {
-    // Only find expenses that belong to the logged-in user (req.user.id)
-    const expenses = await Expense.find({ user: req.user.id });
+exports.addExpense = async (req, res) => {
+    const { title, amount, category, description, date } = req.body;
 
-    return res.status(200).json({
-      success: true,
-      count: expenses.length,
-      data: expenses
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
-  }
-};
-
-// @desc    Add expense
-// @route   POST /api/v1/transactions
-// @access  Private
-exports.addExpense = async (req, res, next) => {
-  try {
-    const { title, amount, category } = req.body;
-
-    // Create expense attached to the specific user
-    const expense = await Expense.create({
-      title,
-      amount,
-      category,
-      user: req.user.id
+    const expense = Expense({
+        title,
+        amount,
+        category,
+        description,
+        date,
+        user: req.user.id // Linked to logged in user
     });
 
-    return res.status(201).json({
-      success: true,
-      data: expense
-    });
-  } catch (err) {
-    if (err.name === 'ValidationError') {
-      const messages = Object.values(err.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        error: messages
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        error: 'Server Error'
-      });
+    try {
+        // Validations
+        if (!title || !category || !description || !date) {
+            return res.status(400).json({ message: 'All fields are required!' });
+        }
+        if (amount <= 0 || !amount === 'number') {
+            return res.status(400).json({ message: 'Amount must be a positive number!' });
+        }
+        
+        await expense.save();
+        res.status(200).json({ message: 'Expense Added' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Server Error' });
     }
-  }
-};
+}
 
-// @desc    Delete expense
-// @route   DELETE /api/v1/transactions/:id
-// @access  Private
-exports.deleteExpense = async (req, res, next) => {
-  try {
-    const expense = await Expense.findById(req.params.id);
-
-    if (!expense) {
-      return res.status(404).json({
-        success: false,
-        error: 'No expense found'
-      });
+exports.getExpenses = async (req, res) => {
+    try {
+        // Only get expenses for the logged in user
+        const expenses = await Expense.find({ user: req.user.id }).sort({ createdAt: -1 });
+        res.status(200).json(expenses);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
     }
+}
 
-    // Make sure user owns the expense before deleting
-    if (expense.user.toString() !== req.user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to delete this expense'
-      });
+exports.deleteExpense = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const expense = await Expense.findById(id);
+        
+        // Check if expense exists
+        if(!expense){
+             return res.status(404).json({ message: 'Expense not found' });
+        }
+
+        // Check if user matches
+        if(expense.user.toString() !== req.user.id){
+            return res.status(401).json({ message: 'User not authorized' });
+        }
+
+        await Expense.findByIdAndDelete(id);
+        res.status(200).json({ message: 'Expense Deleted' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
     }
-
-    await expense.deleteOne();
-
-    return res.status(200).json({
-      success: true,
-      data: {}
-    });
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      error: 'Server Error'
-    });
-  }
-};
+}
