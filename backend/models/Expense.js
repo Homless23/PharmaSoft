@@ -15,8 +15,7 @@ const ExpenseSchema = new mongoose.Schema({
     amount: {
         type: Number,
         required: true,
-        maxLength: 20,
-        trim: true
+        min: 0
     },
     type: {
         type: String,
@@ -24,8 +23,7 @@ const ExpenseSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
-        required: true,
-        trim: true
+        required: true
     },
     category: {
         type: String,
@@ -35,9 +33,20 @@ const ExpenseSchema = new mongoose.Schema({
     description: {
         type: String,
         required: true,
-        maxLength: 20,
+        maxLength: 300,
         trim: true
     },
+    recurring: {
+        enabled: {
+            type: Boolean,
+            default: false
+        },
+        frequency: {
+            type: String,
+            enum: ['daily', 'weekly', 'monthly', 'yearly'],
+            default: 'monthly'
+        }
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Expense', ExpenseSchema);

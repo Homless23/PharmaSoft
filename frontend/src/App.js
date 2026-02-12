@@ -4,6 +4,7 @@ import { useGlobalContext } from './context/globalContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Analytics from './pages/Analytics';
 import Spinner from './components/Spinner';
 import './App.css';
 
@@ -80,6 +81,16 @@ const AppContent = () => {
                         isAuthenticated={!!user}
                         isLoading={isLoading}
                         element={<Home />}
+                    />
+                }
+            />
+            <Route
+                path="/analytics"
+                element={
+                    <ProtectedRoute
+                        isAuthenticated={!!user}
+                        isLoading={isLoading}
+                        element={<Analytics />}
                     />
                 }
             />

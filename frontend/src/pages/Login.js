@@ -1,27 +1,66 @@
 import React, { useState } from 'react';
-import { useGlobalContext } from '../context/globalContext';
 import { Link } from 'react-router-dom';
+import { useGlobalContext } from '../context/globalContext';
+import './Auth.css';
 
-function Login() {
-    const { loginUser, error } = useGlobalContext();
-    const [form, setForm] = useState({ email: '', password: '' });
+const Login = () => {
+  const { loginUser, error, setError } = useGlobalContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '' });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        await loginUser(form);
-    };
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    await loginUser({ email: form.email.trim(), password: form.password });
+    setIsSubmitting(false);
+  };
 
-    return (
-        <div>
-            <h2>Login</h2>
-            {error && <p style={{color: 'red'}}>{error}</p>}
-            <form onSubmit={handleSubmit}>
-                <input type="email" placeholder="Email" onChange={e => setForm({...form, email: e.target.value})} />
-                <input type="password" placeholder="Password" onChange={e => setForm({...form, password: e.target.value})} />
-                <button type="submit">Login</button>
-            </form>
-            <p><Link to="/signup">Signup Here</Link></p>
-        </div>
-    );
-}
+  return (
+    <div className="auth-shell">
+      <div className="auth-glow auth-glow-left" />
+      <div className="auth-glow auth-glow-right" />
+
+      <main className="auth-card">
+        <p className="eyebrow">Expense OS</p>
+        <h2>Welcome Back</h2>
+        <p className="muted">Log in to manage your spending, budgets, and analytics.</p>
+
+        {error && <div className="alert-error">{error}</div>}
+
+        <form className="auth-form" onSubmit={onSubmit}>
+          <input
+            className="input"
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            required
+            onChange={(e) => {
+              if (error) setError(null);
+              setForm((prev) => ({ ...prev, email: e.target.value }));
+            }}
+          />
+          <input
+            className="input"
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            required
+            onChange={(e) => {
+              if (error) setError(null);
+              setForm((prev) => ({ ...prev, password: e.target.value }));
+            }}
+          />
+          <button className="primary-btn" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+
+        <p className="muted" style={{ marginTop: '1rem' }}>
+          New here? <Link className="auth-link" to="/signup">Create account</Link>
+        </p>
+      </main>
+    </div>
+  );
+};
+
 export default Login;

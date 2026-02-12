@@ -1,90 +1,57 @@
-import React, { useContext } from 'react';
-import { GlobalContext } from '../context/globalContext';
+import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useGlobalContext } from '../context/globalContext';
 
 const ExpenseChart = () => {
-  const { expenses } = useContext(GlobalContext);
+  const { expenses } = useGlobalContext();
 
-  // 1. Group Data by Date
-  const dataMap = {};
-  expenses.forEach(expense => {
-    const date = new Date(expense.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    dataMap[date] = (dataMap[date] || 0) + expense.amount;
+  const byDate = {};
+  expenses.forEach((expense) => {
+    const amount = Number(expense.amount || 0);
+    const date = new Date(expense.date);
+    if (!Number.isFinite(amount) || Number.isNaN(date.getTime())) return;
+    const key = date.toISOString().slice(0, 10);
+    byDate[key] = (byDate[key] || 0) + amount;
   });
 
-  // Convert to Array & Sort by Date
-  // (Note: Sorting purely by string "Feb 12" is tricky, in a real app use timestamps. 
-  // For now, we assume expenses come in order or we reverse them if they are newest-first)
-  const data = Object.keys(dataMap).map(date => ({
-    name: date,
-    amount: dataMap[date]
-  })).reverse(); // Assuming expenses are stored newest-first
+  const data = Object.keys(byDate)
+    .sort((a, b) => new Date(a) - new Date(b))
+    .map((dateKey) => ({
+      name: new Date(dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      amount: byDate[dateKey]
+    }));
 
-  // Custom "Glass" Tooltip
   const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ 
-            background: 'rgba(24, 24, 27, 0.9)', 
-            border: '1px solid rgba(255,255,255,0.1)', 
-            borderRadius: '12px',
-            padding: '1rem',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-        }}>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{label}</p>
-          <p style={{ margin: '4px 0 0', color: '#fff', fontWeight: 'bold', fontSize: '1.1rem' }}>
-            Rs {payload[0].value.toLocaleString()}
-          </p>
-        </div>
-      );
-    }
-    return null;
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div style={{ background: 'rgba(8, 20, 40, 0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', padding: '0.6rem' }}>
+        <p style={{ margin: 0 }}>{label}</p>
+        <strong>Rs {Number(payload[0].value || 0).toLocaleString()}</strong>
+      </div>
+    );
   };
 
   return (
-    <div className="card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+    <div className="card" style={{ height: '420px' }}>
       <h3 className="section-title">Spending Trend</h3>
-      
       {data.length > 0 ? (
-        <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-                <defs>
-                <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                    dy={10}
-                />
-                <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                    tickFormatter={(val) => `Rs${val/1000}k`}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 }} />
-                <Area 
-                    type="monotone" 
-                    dataKey="amount" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorAmount)" 
-                />
-            </AreaChart>
-            </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height="90%">
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.5} />
+                <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="name" tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} />
+            <Area type="monotone" dataKey="amount" stroke="#22d3ee" strokeWidth={2.5} fill="url(#expenseGradient)" />
+          </AreaChart>
+        </ResponsiveContainer>
       ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
-              No data to visualize yet.
-          </div>
+        <div className="empty-state">No trend data yet.</div>
       )}
     </div>
   );

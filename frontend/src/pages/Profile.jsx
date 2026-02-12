@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import axios from 'axios';
+import api from '../services/api';
 
 
-// --- HARDCODED URL FIX ---
-// This ensures we always talk to the right server, bypassing the "proxy" issues
-const API_URL = "http://localhost:5000/api/v1/auth";;
+const API_URL = '/v1/auth';
 
 function Profile() {
     const [name, setName] = useState('');
@@ -20,8 +18,7 @@ function Profile() {
 
     const getUser = async () => {
         try {
-            // We use { withCredentials: true } to send the HTTP-only cookie
-            const res = await axios.get(`${API_URL}/me`, { withCredentials: true });
+            const res = await api.get(`${API_URL}/me`);
             
             // Set the state with the data from the backend
             setName(res.data.data.name);
@@ -39,14 +36,10 @@ function Profile() {
 
         try {
             // Send the update request
-            const res = await axios.put(
-                `${API_URL}/updatedetails`, 
-                { name, email }, 
-                { withCredentials: true } // CRITICAL: This sends your login token
-            );
+            const res = await api.put(`${API_URL}/updatedetails`, { name, email });
 
             // Update success
-            setAlertMessage("Profile Updated Successfully! ✅");
+            setAlertMessage("Profile Updated Successfully!");
             setAlertType('success');
             
             // Optional: Update the inputs with the new confirmed data
@@ -55,7 +48,7 @@ function Profile() {
 
         } catch (error) {
             console.error("Update Error:", error.response ? error.response.data : error.message);
-            setAlertMessage("Failed to update profile. ❌");
+            setAlertMessage("Failed to update profile.");
             setAlertType('error');
         }
     };
@@ -250,3 +243,4 @@ const ProfileStyled = styled.div`
 `;
 
 export default Profile;
+

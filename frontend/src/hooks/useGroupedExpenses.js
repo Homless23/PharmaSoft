@@ -2,18 +2,23 @@ import { useMemo } from 'react';
 
 export const useGroupedExpenses = (expenses, categories) => {
   return useMemo(() => {
+    const safeExpenses = Array.isArray(expenses) ? expenses : [];
+    const safeCategories = Array.isArray(categories) ? categories : [];
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     // 1. Financial Health (Current Month Only)
-    const currentMonthExpenses = expenses.filter(exp => {
+    const currentMonthExpenses = safeExpenses.filter(exp => {
+      if (!exp || !exp.date) return false;
       const d = new Date(exp.date);
+      if (Number.isNaN(d.getTime())) return false;
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
-    const totalBudget = categories.reduce((acc, cat) => acc + (cat.budget || 0), 0);
-    const totalSpentThisMonth = currentMonthExpenses.reduce((acc, item) => acc + (item.amount || 0), 0);
+    const totalBudget = safeCategories.reduce((acc, cat) => acc + Number(cat?.budget || 0), 0);
+    const totalSpentThisMonth = currentMonthExpenses.reduce((acc, item) => acc + Number(item?.amount || 0), 0);
     const remaining = totalBudget - totalSpentThisMonth;
     const usagePercentage = totalBudget > 0 ? (totalSpentThisMonth / totalBudget) * 100 : 0;
 
@@ -32,12 +37,15 @@ export const useGroupedExpenses = (expenses, categories) => {
     const weekThreshold = todayTime - (86400000 * 7);
 
     // Sort descending by date first
-    const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedExpenses = [...safeExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     sortedExpenses.forEach(expense => {
-      if (!expense || !expense.amount) return;
+      if (!expense) return;
+      const amount = Number(expense.amount);
+      if (!Number.isFinite(amount) || amount <= 0) return;
 
       const expDate = new Date(expense.date);
+      if (Number.isNaN(expDate.getTime())) return;
       const expTime = startOfDay(expDate);
 
       let targetGroup;
@@ -53,7 +61,7 @@ export const useGroupedExpenses = (expenses, categories) => {
       }
 
       groups[targetGroup].items.push(expense);
-      groups[targetGroup].total += expense.amount;
+      groups[targetGroup].total += amount;
     });
 
     // Determine status color/message

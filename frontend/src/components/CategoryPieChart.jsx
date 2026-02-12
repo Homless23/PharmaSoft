@@ -1,76 +1,53 @@
-import React, { useContext } from 'react';
-import { GlobalContext } from '../context/globalContext';
+import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useGlobalContext } from '../context/globalContext';
+
+const COLORS = ['#22d3ee', '#38bdf8', '#2dd4bf', '#f59e0b', '#fb7185', '#a78bfa', '#f472b6'];
 
 const CategoryPieChart = () => {
-  const { expenses } = useContext(GlobalContext);
+  const { expenses } = useGlobalContext();
 
-  // 1. Group Data by Category
   const dataMap = {};
-  expenses.forEach(item => {
-    dataMap[item.category] = (dataMap[item.category] || 0) + item.amount;
+  expenses.forEach((item) => {
+    const amount = Number(item.amount || 0);
+    if (!item.category || !Number.isFinite(amount)) return;
+    dataMap[item.category] = (dataMap[item.category] || 0) + amount;
   });
 
-  const data = Object.keys(dataMap).map(key => ({
-    name: key,
-    value: dataMap[key]
-  })).sort((a, b) => b.value - a.value); // Sort biggest to smallest
+  const data = Object.keys(dataMap)
+    .map((key) => ({ name: key, value: dataMap[key] }))
+    .sort((a, b) => b.value - a.value);
 
-  // Neon Color Palette
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
-
-  // Custom Glass Tooltip
   const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ 
-            background: 'rgba(9, 9, 11, 0.9)', 
-            border: '1px solid rgba(255,255,255,0.1)', 
-            borderRadius: '8px',
-            padding: '10px'
-        }}>
-          <p style={{ margin: 0, color: '#fff', fontWeight: '600' }}>{payload[0].name}</p>
-          <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Rs {payload[0].value.toLocaleString()}</p>
-        </div>
-      );
-    }
-    return null;
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div style={{ background: 'rgba(8, 20, 40, 0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', padding: '0.6rem' }}>
+        <p style={{ margin: 0 }}>{payload[0].name}</p>
+        <strong>Rs {Number(payload[0].value || 0).toLocaleString()}</strong>
+      </div>
+    );
   };
 
   return (
-    <div className="card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-      <h3 className="section-title">Spending Split</h3>
-      
+    <div className="card" style={{ height: '420px' }}>
+      <h3 className="section-title">Category Split</h3>
       {data.length > 0 ? (
-        <div style={{ flex: 1, minHeight: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-                <Pie
-                    data={data}
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                >
-                    {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                    verticalAlign="bottom" 
-                    height={36} 
-                    iconType="circle"
-                    formatter={(value) => <span style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>{value}</span>}
-                />
-            </PieChart>
-            </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height="90%">
+          <PieChart>
+            <Pie data={data} dataKey="value" innerRadius={70} outerRadius={115} paddingAngle={3}>
+              {data.map((entry, index) => (
+                <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              verticalAlign="bottom"
+              formatter={(value) => <span style={{ color: 'rgba(235,245,255,0.85)' }}>{value}</span>}
+            />
+          </PieChart>
+        </ResponsiveContainer>
       ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
-              No data yet.
-          </div>
+        <div className="empty-state">No expense data yet.</div>
       )}
     </div>
   );
