@@ -1,21 +1,44 @@
-export const CATEGORY_ICON_MAP = {
-  Food: '\uD83C\uDF54',
-  Transport: '\uD83D\uDE97',
-  Entertainment: '\uD83C\uDFAC',
-  Bills: '\uD83D\uDCA1',
-  Health: '\uD83D\uDC8A',
-  Shopping: '\uD83D\uDED2',
-  Groceries: '\uD83E\uDD66',
-  Rent: '\uD83C\uDFE0',
-  Education: '\uD83D\uDCDA',
-  Travel: '\u2708\uFE0F',
-  Investment: '\uD83D\uDCC8',
-  Salary: '\uD83D\uDCB0',
-  Gift: '\uD83C\uDF81',
-  Other: '\uD83D\uDCE6',
-  Default: '\uD83D\uDCDD'
+import React from 'react';
+import {
+  FiBriefcase,
+  FiDollarSign,
+  FiFilm,
+  FiHeart,
+  FiHome,
+  FiMapPin,
+  FiPackage,
+  FiShoppingBag,
+  FiTool,
+  FiTruck,
+  FiTrendingUp
+} from 'react-icons/fi';
+
+const iconStyle = { fontSize: '1rem' };
+
+const CATEGORY_ICON_MAP = {
+  Food: <FiPackage style={iconStyle} />,
+  Transport: <FiTruck style={iconStyle} />,
+  Entertainment: <FiFilm style={iconStyle} />,
+  Bills: <FiHome style={iconStyle} />,
+  Health: <FiHeart style={iconStyle} />,
+  Shopping: <FiShoppingBag style={iconStyle} />,
+  Groceries: <FiPackage style={iconStyle} />,
+  Rent: <FiHome style={iconStyle} />,
+  Education: <FiBriefcase style={iconStyle} />,
+  Travel: <FiMapPin style={iconStyle} />,
+  Investment: <FiTrendingUp style={iconStyle} />,
+  Investments: <FiTrendingUp style={iconStyle} />,
+  Salary: <FiDollarSign style={iconStyle} />,
+  Bonus: <FiDollarSign style={iconStyle} />,
+  Freelance: <FiBriefcase style={iconStyle} />,
+  Gift: <FiPackage style={iconStyle} />,
+  Tools: <FiTool style={iconStyle} />,
+  Other: <FiPackage style={iconStyle} />
 };
 
-export const getCategoryIcon = (category) => {
-  return CATEGORY_ICON_MAP[category] || CATEGORY_ICON_MAP.Default;
+export const getCategoryIcon = (category, type = 'expense') => {
+  if (type === 'income') {
+    return <FiDollarSign style={iconStyle} />;
+  }
+  return CATEGORY_ICON_MAP[category] || <FiPackage style={iconStyle} />;
 };

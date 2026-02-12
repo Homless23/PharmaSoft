@@ -1,12 +1,23 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Label
+} from 'recharts';
 import { useGlobalContext } from '../context/globalContext';
 
-const ExpenseChart = () => {
+const ExpenseChart = ({ expenses: externalExpenses }) => {
   const { expenses } = useGlobalContext();
+  const sourceExpenses = Array.isArray(externalExpenses) ? externalExpenses : expenses;
 
   const byDate = {};
-  expenses.forEach((expense) => {
+  sourceExpenses.forEach((expense) => {
+    if ((expense.type || 'expense') !== 'expense') return;
     const amount = Number(expense.amount || 0);
     const date = new Date(expense.date);
     if (!Number.isFinite(amount) || Number.isNaN(date.getTime())) return;
@@ -36,19 +47,29 @@ const ExpenseChart = () => {
       <h3 className="section-title">Spending Trend</h3>
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height="90%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.5} />
-                <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+          <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="name" tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="name" tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false}>
+              <Label value="Date" position="insideBottom" dy={10} style={{ fill: '#9cb4d3', fontSize: 11 }} />
+            </XAxis>
+            <YAxis tick={{ fill: '#c7dbf3', fontSize: 12 }} axisLine={false} tickLine={false}>
+              <Label
+                value="Expense Amount"
+                angle={-90}
+                position="insideLeft"
+                style={{ fill: '#9cb4d3', fontSize: 11, textAnchor: 'middle' }}
+              />
+            </YAxis>
             <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="amount" stroke="#22d3ee" strokeWidth={2.5} fill="url(#expenseGradient)" />
-          </AreaChart>
+            <Line
+              type="monotone"
+              dataKey="amount"
+              stroke="#22d3ee"
+              strokeWidth={3}
+              dot={{ r: 3, fill: '#22d3ee' }}
+              activeDot={{ r: 6, stroke: '#fff', strokeWidth: 1 }}
+            />
+          </LineChart>
         </ResponsiveContainer>
       ) : (
         <div className="empty-state">No trend data yet.</div>

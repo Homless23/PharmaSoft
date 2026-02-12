@@ -8,7 +8,7 @@ const BudgetSection = () => {
 
   const getSpent = (catName) =>
     expenses
-      .filter((e) => e.category === catName)
+      .filter((e) => e.category === catName && (e.type || 'expense') === 'expense')
       .reduce((acc, item) => acc + Number(item.amount || 0), 0);
 
   const startEditing = (cat) => {
@@ -30,9 +30,9 @@ const BudgetSection = () => {
           const budget = Number(cat.budget || 0);
           const percentage = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
 
-          let barColor = '#2dd4bf';
+          let barColor = '#22c55e';
           if (percentage >= 70) barColor = '#f59e0b';
-          if (percentage >= 95) barColor = '#ef4444';
+          if (percentage >= 90) barColor = '#ef4444';
 
           return (
             <div key={cat._id}>
@@ -56,12 +56,13 @@ const BudgetSection = () => {
                 )}
               </div>
 
-              <div className="progress-track">
+              <div className="progress-track" style={{ background: 'rgba(255,255,255,0.24)', height: '10px' }}>
                 <div
                   className="progress-fill"
                   style={{
                     width: `${percentage}%`,
-                    background: barColor
+                    background: barColor,
+                    boxShadow: `0 0 12px ${barColor}`
                   }}
                 />
               </div>

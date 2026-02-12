@@ -52,7 +52,7 @@ const TransactionList = () => {
                     fontSize: '1.2rem'
                   }}
                 >
-                  {getCategoryIcon(expense.category)}
+                  {getCategoryIcon(expense.category, expense.type)}
                 </div>
                 <div>
                   <div style={{ color: '#fff', fontWeight: '500' }}>{expense.title}</div>

@@ -31,12 +31,12 @@ body {
 
 .card {
   border-radius: 22px;
-  padding: 1.25rem;
+  padding: 1.35rem;
 }
 
 .panel {
   border-radius: 22px;
-  padding: 1.25rem;
+  padding: 1.35rem;
 }
 
 .section-title {
@@ -95,6 +95,10 @@ body {
   box-shadow: 0 12px 24px rgba(34, 211, 238, 0.25);
 }
 
+.primary-btn.full-width {
+  width: 100%;
+}
+
 .primary-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -104,6 +108,13 @@ body {
   background: rgba(150, 193, 255, 0.14);
   border: 1px solid rgba(190, 220, 255, 0.24);
   text-decoration: none;
+}
+
+.ghost-btn.subtle {
+  width: 100%;
+  background: transparent;
+  border-color: rgba(190, 220, 255, 0.15);
+  color: var(--text-muted);
 }
 
 .danger-btn {
@@ -195,7 +206,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem;
+  padding: 1rem 1.1rem;
   border: 1px solid rgba(190, 220, 255, 0.18);
   border-radius: 14px;
   background: rgba(7, 18, 38, 0.58);
@@ -261,4 +272,32 @@ body {
   padding: 1.4rem;
   background: linear-gradient(145deg, rgba(30, 60, 100, 0.92), rgba(8, 20, 40, 0.92));
   border: 1px solid rgba(190, 220, 255, 0.35);
+}
+
+.amount-hero {
+  background: rgba(10, 24, 50, 0.72);
+  border: 1px solid rgba(190, 220, 255, 0.35);
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+}
+
+.amount-label {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.amount-input {
+  font-size: 2rem;
+  font-weight: 800;
+  padding: 0.7rem 0.8rem;
+}
+
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

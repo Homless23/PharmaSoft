@@ -8,7 +8,10 @@ const DEFAULT_CATEGORIES = [
   { name: 'Shopping', budget: 0 },
   { name: 'Entertainment', budget: 0 },
   { name: 'Health', budget: 0 },
-  { name: 'Other', budget: 0 }
+  { name: 'Other', budget: 0 },
+  { name: 'Salary', budget: 0 },
+  { name: 'Freelance', budget: 0 },
+  { name: 'Investments', budget: 0 }
 ];
 
 export const GlobalContext = React.createContext();
@@ -109,11 +112,20 @@ export const GlobalProvider = ({ children }) => {
       return { success: true, items, pagination };
     } catch (err) {
       setError(getApiErrorMessage(err, 'Error fetching history'));
-      return { success: false, items: [], pagination: historyPagination };
+      return {
+        success: false,
+        items: [],
+        pagination: {
+          page: Number(params.page) || 1,
+          limit: Number(params.limit) || 10,
+          total: 0,
+          totalPages: 1
+        }
+      };
     } finally {
       setHistoryLoading(false);
     }
-  }, [getApiErrorMessage, historyPagination]);
+  }, [getApiErrorMessage]);
 
   const addExpense = useCallback(async (expense) => {
     try {
@@ -126,6 +138,8 @@ export const GlobalProvider = ({ children }) => {
       return false;
     }
   }, [getApiErrorMessage, getExpenses]);
+
+  const addTransaction = addExpense;
 
   const deleteExpense = useCallback(async (id) => {
     try {
@@ -245,6 +259,7 @@ export const GlobalProvider = ({ children }) => {
     loginUser,
     logoutUser,
     addExpense,
+    addTransaction,
     getExpenses,
     deleteExpense,
     updateExpense,
@@ -267,6 +282,7 @@ export const GlobalProvider = ({ children }) => {
     loginUser,
     logoutUser,
     addExpense,
+    addTransaction,
     getExpenses,
     deleteExpense,
     updateExpense,

@@ -12,6 +12,7 @@ export const useGroupedExpenses = (expenses, categories) => {
     // 1. Financial Health (Current Month Only)
     const currentMonthExpenses = safeExpenses.filter(exp => {
       if (!exp || !exp.date) return false;
+      if ((exp.type || 'expense') !== 'expense') return false;
       const d = new Date(exp.date);
       if (Number.isNaN(d.getTime())) return false;
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -41,6 +42,7 @@ export const useGroupedExpenses = (expenses, categories) => {
 
     sortedExpenses.forEach(expense => {
       if (!expense) return;
+      if ((expense.type || 'expense') !== 'expense') return;
       const amount = Number(expense.amount);
       if (!Number.isFinite(amount) || amount <= 0) return;
 

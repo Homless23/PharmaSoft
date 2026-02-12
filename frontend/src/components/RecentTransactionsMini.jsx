@@ -86,7 +86,7 @@ const RecentTransactionsMini = () => {
                     border: '1px solid rgba(255,255,255,0.05)'
                   }}
                 >
-                  {getCategoryIcon(item.category)}
+                  {getCategoryIcon(item.category, item.type)}
                 </div>
 
                 <div>

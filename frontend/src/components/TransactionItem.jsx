@@ -14,7 +14,7 @@ const TransactionItem = ({ item, currencySymbol, onDelete }) => {
   return (
     <div className="transaction-item">
       <div className="t-left">
-        <div className="t-icon">{getCategoryIcon(item.category)}</div>
+        <div className="t-icon">{getCategoryIcon(item.category, item.type)}</div>
         <div className="t-details">
           <span className="t-title">{item.title}</span>
           <span className="t-meta">{item.category} | {displayDate}</span>
