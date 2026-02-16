@@ -1,87 +1,104 @@
-# ? ExpenseTracker - Full Stack MERN Application
+# Expense Tracker
 
-A robust, full-stack financial management tool built to track income, expenses, and budgets with real-time visualization and reporting.
+Expense Tracker is a full-stack personal finance application built with React, Node.js, Express, and MongoDB.
 
-?? **[Live Demo](https://expense-tracker-flax-zeta.vercel.app/)** | ?? **[Backend API](https://expense-tracker-fc13.onrender.com)**
+It includes transaction tracking, category budgets, reports, profile management, recurring expense logic, and role-based admin tools.
 
-![Project Banner](https://i.imgur.com/8Q5hQ5e.png)
-*(Note: You can replace this image link with a screenshot of your actual dashboard later!)*
+## Features
 
----
+- JWT authentication with bcrypt password hashing
+- Expense and income entries with category-level tracking
+- Budget planning with auto-allocation from income and savings target
+- Category management with duplicate cleanup support
+- Reports dashboard with filters and export
+- Notifications and in-app activity feedback
+- Profile update and password update
+- Admin login, user management, and login event visibility
 
-## ?? Key Features
+## Tech Stack
 
-* **?? Secure Authentication:** User registration and login using JWT (JSON Web Tokens) and bcrypt password hashing.
-* **?? Interactive Dashboard:** Visual breakdown of spending habits using dynamic Pie Charts (Chart.js).
-* **?? Dark Mode:** Fully responsive UI with a built-in toggle for Light/Dark themes.
-* **?? PDF Reports:** Instantly generate and download expense reports using `jspdf`.
-* **?? Smart Search:** Real-time filtering of transactions by title or category.
-* **?? Cloud Sync:** All data is securely stored in MongoDB Atlas and accessible from any device.
-* **?? User Profiles:** Customizable user profiles with avatar support.
+- Frontend: React, React Router, Recharts, Axios, CSS
+- Backend: Node.js, Express, Mongoose, JWT, bcrypt
+- Database: MongoDB Atlas (or local MongoDB)
 
----
+## Project Structure
 
-## ??? Tech Stack
+```text
+expense-tracker/
+  backend/    # Express API + Mongo models/controllers/routes
+  frontend/   # React application
+```
 
-**Frontend:**
-* React.js (Hooks, Context API)
-* Chart.js & React-Chartjs-2
-* Axios (API Requests)
-* CSS3 (Variables & Responsive Design)
+## Local Setup
 
-**Backend:**
-* Node.js & Express.js
-* MongoDB & Mongoose (Database)
-* JWT & Bcrypt (Security)
-* Cors & Dotenv
+### 1. Clone repository
 
-**Deployment:**
-* **Frontend:** Vercel
-* **Backend:** Render
-* **Database:** MongoDB Atlas
+```bash
+git clone https://github.com/Homless23/expense-tracker.git
+cd expense-tracker
+```
 
----
+### 2. Install dependencies
 
-## ?? Installation & Setup (Run Locally)
+```bash
+cd backend
+npm install
 
-If you want to run this project on your own machine:
+cd ../frontend
+npm install
+```
 
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/Homless23/expense-tracker.git](https://github.com/Homless23/expense-tracker.git)
-    cd expense-tracker
-    ```
+### 3. Environment variables
 
-2.  **Install Dependencies**
-    ```bash
-    # Install Backend deps
-    cd backend
-    npm install
+Create environment files:
 
-    # Install Frontend deps
-    cd ../frontend
-    npm install
-    ```
+- `backend/.env` (see `backend/.env.example`)
+- `frontend/.env` (optional, see `frontend/.env.example`)
 
-3.  **Environment Setup**
-    Create a `.env` file in the `backend` folder and add:
-    ```env
-    MONGO_URI=your_mongodb_connection_string
-    JWT_SECRET=your_jwt_secret_key
-    PORT=5000
-    ```
+### 4. Run locally
 
-4.  **Run the App**
-    * **Backend:** `cd backend && npm start`
-    * **Frontend:** `cd frontend && npm start`
+Backend:
 
----
+```bash
+cd backend
+npm start
+```
 
-## ????? Author
+Frontend:
 
-Built by **Ashish** - A Full Stack MERN Developer.
+```bash
+cd frontend
+npm start
+```
 
----
-*If you like this project, please give it a ? on GitHub!*# exp-tracker
-# expense-tracker
+Frontend runs on `http://localhost:3000`  
+Backend runs on `http://localhost:5000`
+
+## API Overview
+
+Base URL: `http://localhost:5000/api`
+
+- Auth: `/auth/*`
+- Expenses + analytics: `/v1/*`
+- Categories: `/v1/categories*`
+- Goals: `/v1/goals*`
+- Budgets: `/v1/budgets/auto-allocate`
+- Admin: `/admin/*`
+
+## Useful Scripts
+
+Backend:
+
+- `npm start` - start API server
+- `npm run cleanup:categories` - remove duplicate category rows per user
+
+Frontend:
+
+- `npm start` - start development server
+- `npm run build` - production build
+
+## Notes
+
+- Keep secrets out of source control.
+- If you update admin credentials in `.env`, restart backend for changes to apply.
 
