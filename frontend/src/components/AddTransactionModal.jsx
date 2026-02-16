@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGlobalContext } from '../context/globalContext';
 
 const EXPENSE_CATEGORY_FALLBACK = ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Tools', 'Other'];
 const INCOME_CATEGORY_FALLBACK = ['Salary', 'Freelance', 'Investments', 'Bonus', 'Other'];
 
 const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
-  const { categories, addTransaction, error, setError } = useGlobalContext();
+  const { categories, addTransaction, error, setError, showToast } = useGlobalContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     type: 'expense',
@@ -15,7 +16,8 @@ const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
     description: '',
     date: new Date().toISOString().split('T')[0],
     recurringEnabled: false,
-    recurringFrequency: 'monthly'
+    recurringFrequency: 'monthly',
+    recurringAutoCreate: false
   });
 
   const categoryOptions = useMemo(() => {
@@ -47,11 +49,14 @@ const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
       date: form.date,
       recurring: {
         enabled: form.recurringEnabled,
-        frequency: form.recurringFrequency
+        frequency: form.recurringFrequency,
+        autoCreate: form.recurringAutoCreate
       }
     });
     setIsSubmitting(false);
     if (!success) return;
+    const signedAmount = `${form.type === 'income' ? '+' : '-'}Rs ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    showToast(`Successfully added "${form.title.trim()}" (${signedAmount})`, { type: 'success', duration: 2600 });
     if (onSuccess) onSuccess();
     onClose();
     setForm((prev) => ({
@@ -59,14 +64,15 @@ const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
       title: '',
       amount: '',
       description: '',
-      recurringEnabled: false
+      recurringEnabled: false,
+      recurringAutoCreate: false
     }));
   };
 
-  return (
+  const modalContent = (
     <div className="wizard-overlay">
       <div className="wizard-card">
-        <h3 style={{ marginTop: 0, marginBottom: '0.8rem' }}>Add Transaction</h3>
+        <h3 style={{ marginTop: 0, marginBottom: '0.8rem' }}>Add Expense</h3>
         {error && <div className="alert-error">{error}</div>}
 
         <form className="stacked-form" onSubmit={submit}>
@@ -128,6 +134,15 @@ const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
                 />
                 <span>Recurring</span>
               </label>
+              <label className="check-wrap">
+                <input
+                  type="checkbox"
+                  disabled={!form.recurringEnabled}
+                  checked={form.recurringAutoCreate}
+                  onChange={(e) => setForm((p) => ({ ...p, recurringAutoCreate: e.target.checked }))}
+                />
+                <span>Auto-create due entries</span>
+              </label>
               <select
                 className="input"
                 disabled={!form.recurringEnabled}
@@ -150,6 +165,8 @@ const AddTransactionModal = ({ isOpen, onClose, onSuccess }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default AddTransactionModal;

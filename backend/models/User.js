@@ -17,6 +17,15 @@ const UserSchema = new mongoose.Schema({
         type: String, 
         required: [true, 'Please add a password'] 
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
+    lastLoginAt: {
+        type: Date,
+        default: null
+    }
 }, { timestamps: true });
 
 // 1. Hash password before saving

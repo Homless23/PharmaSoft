@@ -4,9 +4,16 @@ import { useGlobalContext } from './context/globalContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Analytics from './pages/Analytics';
 import History from './pages/History';
+import AddTransaction from './pages/AddTransaction';
+import Budget from './pages/Budget';
+import Categories from './pages/Categories';
+import Reports from './pages/Reports';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
 import Spinner from './components/Spinner';
+import Toast from './components/Toast';
 import './App.css';
 
 /**
@@ -29,6 +36,16 @@ const PublicRoute = ({ isAuthenticated, isLoading, element }) => {
         return <Spinner />;
     }
     return !isAuthenticated ? element : <Navigate to="/" replace />;
+};
+
+const AdminRoute = ({ user, isLoading, element }) => {
+    if (isLoading) {
+        return <Spinner />;
+    }
+    if (!user) {
+        return <Navigate to="/admin/login" replace />;
+    }
+    return user?.role === 'admin' ? element : <Navigate to="/dashboard" replace />;
 };
 
 /**
@@ -74,60 +91,153 @@ const AppContent = () => {
     }
 
     return (
-        <Routes>
-            <Route
-                path="/"
-                element={
-                    <ProtectedRoute
-                        isAuthenticated={!!user}
-                        isLoading={isLoading}
-                        element={<Home />}
-                    />
-                }
-            />
-            <Route
-                path="/analytics"
-                element={
-                    <ProtectedRoute
-                        isAuthenticated={!!user}
-                        isLoading={isLoading}
-                        element={<Analytics />}
-                    />
-                }
-            />
-            <Route
-                path="/history"
-                element={
-                    <ProtectedRoute
-                        isAuthenticated={!!user}
-                        isLoading={isLoading}
-                        element={<History />}
-                    />
-                }
-            />
-            <Route
-                path="/login"
-                element={
-                    <PublicRoute
-                        isAuthenticated={!!user}
-                        isLoading={isLoading}
-                        element={<Login />}
-                    />
-                }
-            />
-            <Route
-                path="/signup"
-                element={
-                    <PublicRoute
-                        isAuthenticated={!!user}
-                        isLoading={isLoading}
-                        element={<Signup />}
-                    />
-                }
-            />
-            {/* Catch-all route for 404 pages */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <>
+            <Routes>
+                <Route
+                    path="/"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Navigate to="/dashboard" replace />}
+                        />
+                    }
+                />
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Home />}
+                        />
+                    }
+                />
+                <Route
+                    path="/transactions"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<History />}
+                        />
+                    }
+                />
+                <Route
+                    path="/add"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<AddTransaction />}
+                        />
+                    }
+                />
+                <Route
+                    path="/budget"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Budget />}
+                        />
+                    }
+                />
+                <Route
+                    path="/categories"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Categories />}
+                        />
+                    }
+                />
+                <Route
+                    path="/reports"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Reports />}
+                        />
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Profile />}
+                        />
+                    }
+                />
+                <Route
+                    path="/admin"
+                    element={
+                        <AdminRoute
+                            user={user}
+                            isLoading={isLoading}
+                            element={<Admin />}
+                        />
+                    }
+                />
+                <Route
+                    path="/analytics"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Budget />}
+                        />
+                    }
+                />
+                <Route
+                    path="/history"
+                    element={
+                        <ProtectedRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<History />}
+                        />
+                    }
+                />
+                <Route
+                    path="/login"
+                    element={
+                        <PublicRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Login />}
+                        />
+                    }
+                />
+                <Route
+                    path="/signup"
+                    element={
+                        <PublicRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<Signup />}
+                        />
+                    }
+                />
+                <Route
+                    path="/admin/login"
+                    element={
+                        <PublicRoute
+                            isAuthenticated={!!user}
+                            isLoading={isLoading}
+                            element={<AdminLogin />}
+                        />
+                    }
+                />
+                {/* Catch-all route for 404 pages */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Toast />
+        </>
     );
 };
 

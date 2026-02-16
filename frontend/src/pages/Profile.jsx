@@ -1,246 +1,180 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import api from '../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import AppShell from '../components/AppShell';
+import { useGlobalContext } from '../context/globalContext';
+import './DashboardUI.css';
 
+const Profile = () => {
+  const {
+    user,
+    error,
+    loading,
+    getCurrentUser,
+    updateProfile,
+    updatePassword
+  } = useGlobalContext();
 
-const API_URL = '/v1/auth';
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [profile, setProfile] = useState({ name: '', email: '', createdAt: '' });
+  const [nameInput, setNameInput] = useState('');
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [localError, setLocalError] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-function Profile() {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [alertMessage, setAlertMessage] = useState('');
-    const [alertType, setAlertType] = useState(''); // 'success' or 'error'
-
-    // Load user data when the page opens
-    useEffect(() => {
-        getUser();
-    }, []);
-
-    const getUser = async () => {
-        try {
-            const res = await api.get(`${API_URL}/me`);
-            
-            // Set the state with the data from the backend
-            setName(res.data.data.name);
-            setEmail(res.data.data.email);
-        } catch (error) {
-            console.error("Error fetching user:", error);
-            setAlertMessage("Could not load user data.");
-            setAlertType('error');
-        }
+  useEffect(() => {
+    const loadProfile = async () => {
+      setIsPageLoading(true);
+      const result = await getCurrentUser();
+      if (result.success && result.data) {
+        setProfile({
+          name: result.data.name || '',
+          email: result.data.email || '',
+          createdAt: result.data.createdAt || ''
+        });
+        setNameInput(result.data.name || '');
+      } else if (user) {
+        setProfile({
+          name: user.name || '',
+          email: user.email || '',
+          createdAt: ''
+        });
+        setNameInput(user.name || '');
+      }
+      setIsPageLoading(false);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setAlertMessage('');
+    loadProfile();
+  }, [getCurrentUser, user]);
 
-        try {
-            // Send the update request
-            const res = await api.put(`${API_URL}/updatedetails`, { name, email });
+  const initials = useMemo(() => {
+    const raw = String(profile.name || user?.name || 'U').trim();
+    if (!raw) return 'U';
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }, [profile.name, user]);
 
-            // Update success
-            setAlertMessage("Profile Updated Successfully!");
-            setAlertType('success');
-            
-            // Optional: Update the inputs with the new confirmed data
-            setName(res.data.data.name);
-            setEmail(res.data.data.email);
+  const onSaveName = async (event) => {
+    event.preventDefault();
+    const cleaned = String(nameInput || '').trim();
+    if (!cleaned) return;
 
-        } catch (error) {
-            console.error("Update Error:", error.response ? error.response.data : error.message);
-            setAlertMessage("Failed to update profile.");
-            setAlertType('error');
-        }
-    };
+    setIsSavingName(true);
+    const result = await updateProfile({ name: cleaned });
+    setIsSavingName(false);
+    if (!result.success) return;
+    setProfile((prev) => ({ ...prev, name: cleaned }));
+  };
 
-    return (
-        <ProfileStyled>
-            <div className="profile-container">
-                <h2>Account Settings</h2>
-                
-                {/* Alert Message Box */}
-                {alertMessage && (
-                    <div className={`alert ${alertType}`}>
-                        {alertMessage}
-                    </div>
-                )}
-
-                <div className="profile-card">
-                    <div className="avatar-section">
-                        <div className="avatar">
-                            {name ? name.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div className="user-info">
-                            <h3>{name}</h3>
-                            <p>{email}</p>
-                            <span className="badge">Active Member</span>
-                        </div>
-                    </div>
-
-                    <form className="form-section" onSubmit={handleSubmit}>
-                        <div className="input-control">
-                            <label>Full Name</label>
-                            <input 
-                                type="text" 
-                                value={name} 
-                                onChange={(e) => setName(e.target.value)} 
-                                placeholder="Enter your name"
-                            />
-                        </div>
-
-                        <div className="input-control">
-                            <label>Email Address</label>
-                            <input 
-                                type="email" 
-                                value={email} 
-                                onChange={(e) => setEmail(e.target.value)} 
-                                placeholder="Enter your email"
-                            />
-                        </div>
-
-                        <button className="submit-btn" type="submit">
-                            Update Profile
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </ProfileStyled>
-    );
-}
-
-// --- STYLES (Matches your screenshot) ---
-const ProfileStyled = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 80vh;
-
-    .profile-container {
-        width: 100%;
-        max-width: 600px;
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
+  const onSavePassword = async (event) => {
+    event.preventDefault();
+    setLocalError('');
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setLocalError('Please fill all password fields.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setLocalError('New password and confirm password do not match.');
+      return;
     }
 
-    h2 {
-        color: rgba(255, 255, 255, 0.8);
-    }
+    setIsSavingPassword(true);
+    const result = await updatePassword({ currentPassword, newPassword });
+    setIsSavingPassword(false);
+    if (!result.success) return;
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
 
-    .alert {
-        padding: 1rem;
-        border-radius: 10px;
-        color: white;
-        text-align: center;
-        font-weight: bold;
-    }
-    .alert.success { background: #27ae60; }
-    .alert.error { background: #e74c3c; }
+  return (
+    <AppShell
+      title="Profile"
+      subtitle="Manage account details and security settings"
+    >
+      {(loading || isPageLoading) ? <div className="inline-loading">Loading profile...</div> : null}
+      {(error || localError) ? <div className="error-banner">{localError || error}</div> : null}
 
-    .profile-card {
-        background: #fcf6f9;
-        border: 2px solid #FFFFFF;
-        box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-        border-radius: 20px;
-        padding: 2rem;
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
+      <section className="profile-grid">
+        <aside className="ui-card profile-side-card">
+          <div className="profile-avatar">{initials}</div>
+          <h3>{profile.name || 'User'}</h3>
+          <p>{profile.email || '-'}</p>
+          <small className="muted">
+            Member since {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Recently'}
+          </small>
+        </aside>
 
-    .avatar-section {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        margin-bottom: 1rem;
-        
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #2a2a2a;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            font-weight: bold;
-            box-shadow: 0px 1px 15px rgba(0,0,0,0.2);
-        }
+        <div className="profile-main-stack">
+          <article className="ui-card">
+            <h3 style={{ marginBottom: '10px' }}>Account</h3>
+            <form className="form-grid cols-2" onSubmit={onSaveName}>
+              <div className="form-field">
+                <label>Display Name</label>
+                <input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label>Email</label>
+                <input value={profile.email} disabled />
+              </div>
+              <div>
+                <button className="btn-primary" type="submit" disabled={isSavingName}>
+                  {isSavingName ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </article>
 
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-
-            h3 { font-size: 1.5rem; color: #222; margin: 0; }
-            p { color: #666; margin: 0; }
-            .badge {
-                background: #27ae60;
-                color: white;
-                padding: 0.2rem 0.8rem;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                width: fit-content;
-                margin-top: 0.5rem;
-            }
-        }
-    }
-
-    .form-section {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
-    .input-control {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-
-        label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #333;
-        }
-
-        input {
-            font-family: inherit;
-            font-size: inherit;
-            outline: none;
-            border: none;
-            padding: .8rem 1rem;
-            border-radius: 10px;
-            border: 1px solid rgba(34, 34, 96, 0.1);
-            background: rgba(255, 255, 255, 0.6);
-            color: rgba(34, 34, 96, 0.9);
-            box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-            transition: all .3s ease-in-out;
-            
-            &:focus {
-                border-color: #27ae60;
-                background: white;
-            }
-        }
-    }
-
-    .submit-btn {
-        padding: 1rem;
-        border-radius: 10px;
-        background: #222;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: all 0.3s ease;
-        margin-top: 1rem;
-
-        &:hover {
-            background: #27ae60;
-            transform: translateY(-2px);
-        }
-    }
-`;
+          <article className="ui-card">
+            <h3 style={{ marginBottom: '10px' }}>Security</h3>
+            <form className="form-grid cols-2" onSubmit={onSavePassword}>
+              <div className="form-field">
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label>Confirm Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div style={{ alignSelf: 'end' }}>
+                <button className="btn-primary" type="submit" disabled={isSavingPassword}>
+                  {isSavingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </article>
+        </div>
+      </section>
+    </AppShell>
+  );
+};
 
 export default Profile;
-

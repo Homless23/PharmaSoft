@@ -2,7 +2,7 @@ import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useGlobalContext } from '../context/globalContext';
 
-const COLORS = ['#22d3ee', '#38bdf8', '#2dd4bf', '#f59e0b', '#fb7185', '#a78bfa', '#f472b6'];
+const COLORS = ['#3b82f6', '#f59e0b', '#14b8a6', '#8b5cf6', '#f43f5e', '#06b6d4', '#84cc16'];
 
 const CategoryPieChart = ({ expenses: externalExpenses }) => {
   const { expenses } = useGlobalContext();
@@ -32,16 +32,16 @@ const CategoryPieChart = ({ expenses: externalExpenses }) => {
   };
 
   return (
-    <div className="card" style={{ height: '420px' }}>
-      <h3 className="section-title">Category Split</h3>
+    <div className="card analytics-chart-card analytics-split-card" style={{ height: '500px' }}>
+      <h3 className="section-title">Spending Split</h3>
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height="90%">
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
-              innerRadius={70}
-              outerRadius={115}
+              innerRadius={72}
+              outerRadius={118}
               paddingAngle={3}
               labelLine={false}
               label={({ percent, x, y }) => (

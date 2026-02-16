@@ -6,25 +6,23 @@ const Spinner = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      height: '100vh',        // Takes full screen height
+      height: '100vh',
       width: '100%',
-      position: 'fixed',      // Stays in place even if you scroll
+      position: 'fixed',
       top: 0,
       left: 0,
-      zIndex: 9999,           // Ensures it sits on top of everything
-      background: 'var(--bg-body)' // Matches your app background
+      zIndex: 9999,
+      background: 'linear-gradient(145deg, #040b1f 0%, #040816 48%, #120b2b 100%)'
     }}>
-      {/* A Simple Neon CSS Spinner */}
       <div className="neon-spinner" style={{
         width: '50px',
         height: '50px',
         border: '4px solid rgba(255,255,255,0.1)',
-        borderTop: '4px solid #6366f1', // Brand Color
+        borderTop: '4px solid #6366f1',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite'
       }}></div>
-      
-      {/* Injecting keyframes for the animation */}
+
       <style>
         {`
           @keyframes spin {

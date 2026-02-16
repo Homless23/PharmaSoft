@@ -1,63 +1,119 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useGlobalContext } from '../context/globalContext';
-import './Auth.css';
+import axios from 'axios';
+import './Login.css';
 
 const Login = () => {
-  const { loginUser, error, setError } = useGlobalContext();
+  const navigate = useNavigate();
+  const { setUser, pushNotification } = useGlobalContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
 
-  const onSubmit = async (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
-    await loginUser({ email: form.email.trim(), password: form.password });
-    setIsSubmitting(false);
+    setError('');
+
+    try {
+      const response = await axios.post('/api/users/login', {
+        email: form.email.trim(),
+        password: form.password
+      });
+      const payload = response?.data || {};
+      const token = payload.token || payload.jwt;
+
+      if (!token) {
+        throw new Error('Token missing in login response.');
+      }
+
+      const userData = {
+        ...payload,
+        token
+      };
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      pushNotification('Signed in successfully', { type: 'success' });
+      navigate('/dashboard');
+    } catch (requestError) {
+      if (requestError?.response?.status === 401) {
+        setError('Invalid Credentials');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-glow auth-glow-left" />
-      <div className="auth-glow auth-glow-right" />
-
-      <main className="auth-card">
-        <p className="eyebrow">Expense OS</p>
-        <h2>Welcome Back</h2>
-        <p className="muted">Log in to manage your spending, budgets, and analytics.</p>
-
-        {error && <div className="alert-error">{error}</div>}
-
-        <form className="auth-form" onSubmit={onSubmit}>
-          <input
-            className="input"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            required
-            onChange={(e) => {
-              if (error) setError(null);
-              setForm((prev) => ({ ...prev, email: e.target.value }));
-            }}
-          />
-          <input
-            className="input"
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            required
-            onChange={(e) => {
-              if (error) setError(null);
-              setForm((prev) => ({ ...prev, password: e.target.value }));
-            }}
-          />
-          <button className="primary-btn" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Logging in...' : 'Login'}
+    <div className="login-page-shell">
+      <main className="login-split-card">
+        <section className="login-left-panel">
+          <div>
+            <h1>Hello, Welcome!</h1>
+            <p>Don&apos;t have an account?</p>
+          </div>
+          <button
+            type="button"
+            className="login-ghost-btn"
+            onClick={() => navigate('/signup')}
+          >
+            Register
           </button>
-        </form>
+        </section>
 
-        <p className="muted" style={{ marginTop: '1rem' }}>
-          New here? <Link className="auth-link" to="/signup">Create account</Link>
-        </p>
+        <section className="login-right-panel">
+          <div className="login-form-wrap">
+            <h2>Login</h2>
+
+            {error && (
+              <div className="login-error-banner">
+                {error}
+              </div>
+            )}
+
+            <form className="login-form" onSubmit={handleLogin}>
+              <input
+                className="login-input"
+                type="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={(event) => {
+                  if (error) setError('');
+                  setForm((prev) => ({ ...prev, email: event.target.value }));
+                }}
+                autoComplete="email"
+                required
+              />
+              <input
+                className="login-input"
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(event) => {
+                  if (error) setError('');
+                  setForm((prev) => ({ ...prev, password: event.target.value }));
+                }}
+                autoComplete="current-password"
+                required
+              />
+
+              <div className="login-forgot-link">Forgot password?</div>
+
+              <button
+                className="login-submit-btn"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Logging in...' : 'Login'}
+              </button>
+            </form>
+          </div>
+        </section>
       </main>
     </div>
   );

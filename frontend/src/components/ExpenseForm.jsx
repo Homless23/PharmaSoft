@@ -181,7 +181,7 @@ const ExpenseForm = () => {
             boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
           }}
         >
-          {isSubmitting ? 'Saving...' : 'Add Transaction'}
+          {isSubmitting ? 'Saving...' : 'Add Expense'}
         </button>
       </form>
     </div>

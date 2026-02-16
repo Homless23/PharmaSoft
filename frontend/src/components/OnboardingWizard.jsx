@@ -2,41 +2,28 @@ import React, { useState } from 'react';
 import { useGlobalContext } from '../context/globalContext';
 
 const OnboardingWizard = ({ onClose }) => {
-  const { categories, editBudget } = useGlobalContext();
+  const { autoAllocateBudgets, getData } = useGlobalContext();
   const [income, setIncome] = useState('');
   const [savingsRate, setSavingsRate] = useState(20);
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState(1);
-
-  const NEEDS = ['Bills', 'Transport', 'Health', 'Housing'];
-  const SAVINGS = ['Savings', 'Investments'];
 
   const handleAutoBudget = async () => {
     const monthlyIncome = Number(income);
     if (!Number.isFinite(monthlyIncome) || monthlyIncome <= 0) return;
 
     setIsSaving(true);
-    const savingsBudget = monthlyIncome * (Number(savingsRate) / 100);
-    const remainder = monthlyIncome - savingsBudget;
-    const needsBudget = remainder * 0.6;
-    const wantsBudget = remainder * 0.4;
-
-    const needsCats = categories.filter((c) => NEEDS.includes(c.name));
-    const savingsCats = categories.filter((c) => SAVINGS.includes(c.name));
-    const wantsCats = categories.filter((c) => !NEEDS.includes(c.name) && !SAVINGS.includes(c.name));
-
-    const perNeed = needsCats.length ? Math.floor(needsBudget / needsCats.length) : 0;
-    const perWant = wantsCats.length ? Math.floor(wantsBudget / wantsCats.length) : 0;
-    const perSavings = savingsCats.length ? Math.floor(savingsBudget / savingsCats.length) : 0;
-
-    const updates = [];
-    needsCats.forEach((cat) => updates.push(editBudget(cat._id, perNeed)));
-    wantsCats.forEach((cat) => updates.push(editBudget(cat._id, perWant)));
-    savingsCats.forEach((cat) => updates.push(editBudget(cat._id, perSavings)));
-    await Promise.all(updates);
-
+    const savingsBudget = monthlyIncome * (Number(savingsRate || 0) / 100);
+    const result = await autoAllocateBudgets({
+      income: monthlyIncome,
+      savingsTarget: savingsBudget,
+      apply: true
+    });
+    if (result.success) {
+      await getData({ force: true });
+      setStep(2);
+    }
     setIsSaving(false);
-    setStep(2);
   };
 
   return (

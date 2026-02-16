@@ -7,13 +7,34 @@ const buildRecurring = (input) => {
     const frequency = ['daily', 'weekly', 'monthly', 'yearly'].includes(input?.frequency)
         ? input.frequency
         : 'monthly';
-    return { enabled, frequency };
+    const autoCreate = Boolean(input?.autoCreate);
+    return { enabled, frequency, autoCreate };
 };
 
 const parseDateOrNull = (value) => {
     if (!value) return null;
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getNextRecurringDate = (baseDate, frequency) => {
+    const nextDate = new Date(baseDate);
+    switch (frequency) {
+        case 'daily':
+            nextDate.setTime(baseDate.getTime() + DAY_MS);
+            break;
+        case 'weekly':
+            nextDate.setTime(baseDate.getTime() + (7 * DAY_MS));
+            break;
+        case 'yearly':
+            nextDate.setFullYear(baseDate.getFullYear() + 1);
+            break;
+        case 'monthly':
+        default:
+            nextDate.setMonth(baseDate.getMonth() + 1);
+            break;
+    }
+    return nextDate;
 };
 
 exports.addExpense = async (req, res) => {
@@ -40,6 +61,9 @@ exports.addExpense = async (req, res) => {
             recurring: buildRecurring(recurring),
             user: req.user.id
         });
+        if (expense.recurring.enabled && normalizedType === 'expense') {
+            expense.recurring.nextDueDate = getNextRecurringDate(expenseDate, expense.recurring.frequency);
+        }
 
         await expense.save();
         return res.status(201).json(expense);
@@ -143,6 +167,13 @@ exports.updateExpense = async (req, res) => {
         expense.description = String(description).trim();
         expense.date = expenseDate;
         expense.recurring = buildRecurring(recurring);
+        if (expense.recurring.enabled && normalizedType === 'expense') {
+            const previousDue = parseDateOrNull(expense.recurring.nextDueDate);
+            expense.recurring.nextDueDate = previousDue || getNextRecurringDate(expenseDate, expense.recurring.frequency);
+        } else {
+            expense.recurring.nextDueDate = null;
+            expense.recurring.lastGeneratedAt = null;
+        }
         await expense.save();
 
         return res.status(200).json(expense);
@@ -161,22 +192,7 @@ exports.generateRecurringExpense = async (req, res) => {
         if (!template.recurring?.enabled) return res.status(400).json({ message: 'Expense is not recurring' });
 
         const lastDate = parseDateOrNull(template.date) || new Date();
-        const nextDate = new Date(lastDate);
-        switch (template.recurring.frequency) {
-            case 'daily':
-                nextDate.setTime(lastDate.getTime() + DAY_MS);
-                break;
-            case 'weekly':
-                nextDate.setTime(lastDate.getTime() + (7 * DAY_MS));
-                break;
-            case 'yearly':
-                nextDate.setFullYear(lastDate.getFullYear() + 1);
-                break;
-            case 'monthly':
-            default:
-                nextDate.setMonth(lastDate.getMonth() + 1);
-                break;
-        }
+        const nextDate = getNextRecurringDate(lastDate, template.recurring.frequency);
 
         const newExpense = await Expense.create({
             user: template.user,
@@ -188,8 +204,82 @@ exports.generateRecurringExpense = async (req, res) => {
             date: nextDate,
             recurring: template.recurring
         });
+        template.recurring.lastGeneratedAt = new Date();
+        template.recurring.nextDueDate = getNextRecurringDate(nextDate, template.recurring.frequency);
+        await template.save();
 
         return res.status(201).json(newExpense);
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+exports.getRecurringAlerts = async (req, res) => {
+    try {
+        const now = new Date();
+        const dueItems = await Expense.find({
+            user: req.user.id,
+            type: { $ne: 'income' },
+            'recurring.enabled': true,
+            'recurring.nextDueDate': { $ne: null, $lte: now }
+        }).sort({ 'recurring.nextDueDate': 1 }).limit(30);
+
+        const alerts = dueItems.map((item) => ({
+            _id: item._id,
+            title: item.title,
+            category: item.category,
+            amount: Number(item.amount || 0),
+            nextDueDate: item.recurring?.nextDueDate,
+            autoCreate: Boolean(item.recurring?.autoCreate),
+            frequency: item.recurring?.frequency || 'monthly'
+        }));
+
+        return res.json({
+            dueCount: alerts.length,
+            items: alerts
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+exports.processRecurringDue = async (req, res) => {
+    try {
+        const now = new Date();
+        const dueTemplates = await Expense.find({
+            user: req.user.id,
+            type: { $ne: 'income' },
+            'recurring.enabled': true,
+            'recurring.autoCreate': true,
+            'recurring.nextDueDate': { $ne: null, $lte: now }
+        }).limit(50);
+
+        const created = [];
+        for (const template of dueTemplates) {
+            const dueDate = parseDateOrNull(template.recurring?.nextDueDate) || now;
+            const generated = await Expense.create({
+                user: template.user,
+                title: template.title,
+                amount: template.amount,
+                type: template.type || 'expense',
+                category: template.category,
+                description: `${template.description} (Auto due)`,
+                date: dueDate,
+                recurring: template.recurring
+            });
+            created.push(generated);
+
+            template.recurring.lastGeneratedAt = now;
+            template.recurring.nextDueDate = getNextRecurringDate(dueDate, template.recurring.frequency);
+            await template.save();
+        }
+
+        return res.json({
+            createdCount: created.length,
+            items: created
+        });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: 'Server Error' });

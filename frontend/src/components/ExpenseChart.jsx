@@ -43,7 +43,7 @@ const ExpenseChart = ({ expenses: externalExpenses }) => {
   };
 
   return (
-    <div className="card" style={{ height: '420px' }}>
+    <div className="card analytics-chart-card analytics-trend-card" style={{ height: '500px' }}>
       <h3 className="section-title">Spending Trend</h3>
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height="90%">
@@ -64,9 +64,9 @@ const ExpenseChart = ({ expenses: externalExpenses }) => {
             <Line
               type="monotone"
               dataKey="amount"
-              stroke="#22d3ee"
+              stroke="#3b82f6"
               strokeWidth={3}
-              dot={{ r: 3, fill: '#22d3ee' }}
+              dot={{ r: 2.5, fill: '#3b82f6' }}
               activeDot={{ r: 6, stroke: '#fff', strokeWidth: 1 }}
             />
           </LineChart>

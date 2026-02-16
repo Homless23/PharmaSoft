@@ -8,11 +8,16 @@ const CategorySchema = new Schema({
     },
     name: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     budget: {
         type: Number,
         default: 0
+    },
+    active: {
+        type: Boolean,
+        default: true
     },
     date: {
         type: Date,

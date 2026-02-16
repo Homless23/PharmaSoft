@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGlobalContext } from '../context/globalContext';
 
-const BudgetSection = () => {
+const BudgetSection = ({ minimal = false }) => {
   const { categories, expenses, editBudget } = useGlobalContext();
   const [editingId, setEditingId] = useState(null);
   const [tempBudget, setTempBudget] = useState(0);
@@ -22,7 +22,7 @@ const BudgetSection = () => {
   };
 
   return (
-    <div className="card">
+    <div className={`card ${minimal ? 'budget-card-minimal' : ''}`}>
       <h3 className="section-title">Budget by Category</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {categories.map((cat) => {
