@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: pharmasoft-backend
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://yourfrontend.netlify.app,https://pharmasoft.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://yourfrontend.netlify.app,https://pharmasoft.com
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: BACKUP_SIGNING_SECRET
+        sync: false
+      - key: BACKUP_EXPORT_ENCRYPTION_KEY
+        sync: false
+      - key: ACCESS_TOKEN_TTL_MINUTES
+        value: 15
+      - key: GRACEFUL_SHUTDOWN_TIMEOUT_MS
+        value: 10000
+      - key: BUSINESS_NAME
+        value: Your Pharmacy Name
+      - key: BUSINESS_PAN
+        sync: false
+      - key: BUSINESS_ADDRESS
+        sync: false
+      - key: DEFAULT_VAT_RATE
+        value: 13
