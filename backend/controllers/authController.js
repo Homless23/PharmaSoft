@@ -136,7 +136,8 @@ const registerUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 avatarDataUrl: user.avatarDataUrl || '',
-                role: user.role
+                role: user.role,
+                token: token
             });
         } else {
             return sendError(res, 400, 'Invalid user data', 'AUTH_REGISTER_INVALID_DATA');
@@ -183,7 +184,8 @@ const loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 avatarDataUrl: user.avatarDataUrl || '',
-                role: user.role
+                role: user.role,
+                token: token
             });
         } else {
             await recordLoginEvent({ user: null, email: normalizedEmail, success: false, req });
@@ -250,7 +252,8 @@ const adminLogin = async (req, res) => {
             name: user.name,
             email: user.email,
             avatarDataUrl: user.avatarDataUrl || '',
-            role: user.role
+            role: user.role,
+            token: token
         });
     } catch (error) {
         console.log(error);

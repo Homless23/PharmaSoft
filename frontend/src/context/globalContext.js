@@ -198,6 +198,10 @@ export const GlobalProvider = ({ children }) => {
       setError(null);
       const res = await api.post('/auth/login', userData);
       setUser(res.data);
+      // Save token to localStorage for cross-domain requests
+      if (res.data?.token) {
+        localStorage.setItem('auth_token', res.data.token);
+      }
       pushNotification('Signed in successfully', { type: 'success', scopeUser: res.data });
       return true;
     } catch (err) {
@@ -208,6 +212,8 @@ export const GlobalProvider = ({ children }) => {
 
   const logoutUser = useCallback(() => {
     api.post('/auth/logout').catch(() => {});
+    // Clear token from localStorage
+    localStorage.removeItem('auth_token');
     setUser(null);
     setTransactions([]);
     setHistoryItems([]);
