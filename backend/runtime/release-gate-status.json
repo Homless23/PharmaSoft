@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "generatedAt": "2026-02-22T20:14:28.738Z",
+  "summary": {
+    "totalSteps": 4,
+    "passed": 4,
+    "failedRequired": 0,
+    "failedOptional": 0
+  },
+  "steps": [
+    {
+      "label": "Preflight release",
+      "ok": true,
+      "code": 0,
+      "optional": false
+    },
+    {
+      "label": "Audit consistency",
+      "ok": true,
+      "code": 0,
+      "optional": false
+    },
+    {
+      "label": "Backup drill snapshots",
+      "ok": true,
+      "code": 0,
+      "optional": false
+    },
+    {
+      "label": "Compliance readiness report",
+      "ok": true,
+      "code": 0,
+      "optional": false
+    }
+  ]
+}

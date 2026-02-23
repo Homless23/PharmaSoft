@@ -1,0 +1,22 @@
+export const MASTER_MEDICINES = [
+  { name: 'Napa', genericName: 'Paracetamol', strength: '500mg', manufacturer: 'Beximco' },
+  { name: 'Cetamol', genericName: 'Paracetamol', strength: '500mg', manufacturer: 'Square' },
+  { name: 'Flexon', genericName: 'Ibuprofen + Paracetamol', strength: '400mg + 500mg', manufacturer: 'Aristo' },
+  { name: 'Paracetamol', genericName: 'Paracetamol', strength: '500mg', manufacturer: 'Generic' },
+  { name: 'Aceclofenac', genericName: 'Aceclofenac', strength: '100mg', manufacturer: 'Sun Pharma' },
+  { name: 'Azithromycin', genericName: 'Azithromycin', strength: '500mg', manufacturer: 'Square' },
+  { name: 'Amoxicillin', genericName: 'Amoxicillin', strength: '250mg', manufacturer: 'Renata' },
+  { name: 'Amoxicillin Forte', genericName: 'Amoxicillin', strength: '500mg', manufacturer: 'Renata' },
+  { name: 'Cetirizine', genericName: 'Cetirizine', strength: '10mg', manufacturer: 'Incepta' },
+  { name: 'Levocetirizine', genericName: 'Levocetirizine', strength: '5mg', manufacturer: 'ACI' },
+  { name: 'Pantoprazole', genericName: 'Pantoprazole', strength: '40mg', manufacturer: 'Eskayef' },
+  { name: 'Omeprazole', genericName: 'Omeprazole', strength: '20mg', manufacturer: 'Healthcare' },
+  { name: 'ORS Sachet', genericName: 'Oral Rehydration Salts', strength: '4.4g + 3.5g + 2.9g', manufacturer: 'Square' },
+  { name: 'Zinc Sulphate', genericName: 'Zinc Sulphate', strength: '20mg', manufacturer: 'Beximco' },
+  { name: 'Vitamin C', genericName: 'Ascorbic Acid', strength: '500mg', manufacturer: 'ACI' },
+  { name: 'Calcium + D3', genericName: 'Calcium Carbonate + Vitamin D3', strength: '500mg + 200IU', manufacturer: 'Square' },
+  { name: 'Metformin', genericName: 'Metformin Hydrochloride', strength: '500mg', manufacturer: 'Incepta' },
+  { name: 'Telmisartan', genericName: 'Telmisartan', strength: '40mg', manufacturer: 'Aristopharma' },
+  { name: 'Amlodipine', genericName: 'Amlodipine', strength: '5mg', manufacturer: 'Opsonin' },
+  { name: 'Atorvastatin', genericName: 'Atorvastatin', strength: '10mg', manufacturer: 'ACI' }
+];

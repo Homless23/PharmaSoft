@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-02-23T07:24:25.313Z",
+  "windowDays": 365,
+  "scannedBills": 1,
+  "scannedAuditLogs": 1,
+  "criticalCount": 0,
+  "warningCount": 0,
+  "critical": [
+    {
+      "label": "Duplicate invoice numbers per tenant",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Bill arithmetic mismatches",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Fiscal year mismatches",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Invoice sequence mismatches/duplicates",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Missing BILL_FINALIZE audit entries",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Missing BILL_VOID audit entries",
+      "severity": "critical",
+      "count": 0,
+      "sample": []
+    }
+  ],
+  "warnings": [
+    {
+      "label": "Non-IRD invoice format bills",
+      "severity": "warning",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Prescription verification inconsistencies",
+      "severity": "warning",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Expired override metadata inconsistencies",
+      "severity": "warning",
+      "count": 0,
+      "sample": []
+    },
+    {
+      "label": "Voided bill metadata issues",
+      "severity": "warning",
+      "count": 0,
+      "sample": []
+    }
+  ]
+}

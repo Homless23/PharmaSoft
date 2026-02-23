@@ -17,8 +17,8 @@ const formatDate = (value) => {
 };
 
 const RecentTransactionsMini = () => {
-  const { expenses } = useGlobalContext();
-  const recent = expenses.slice(0, 4);
+  const { transactions } = useGlobalContext();
+  const recent = transactions.slice(0, 4);
 
   return (
     <div

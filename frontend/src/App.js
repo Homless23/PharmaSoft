@@ -1,20 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useGlobalContext } from './context/globalContext';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import History from './pages/History';
-import AddTransaction from './pages/AddTransaction';
-import Budget from './pages/Budget';
-import Categories from './pages/Categories';
-import Reports from './pages/Reports';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
 import Spinner from './components/Spinner';
 import Toast from './components/Toast';
+import { ACTIONS, hasPermission, normalizeRole } from './config/rbacPolicy';
 import './App.css';
+import './styles/ui.css';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const SalesHistory = lazy(() => import('./pages/SalesHistory'));
+const MedicineMaster = lazy(() => import('./pages/MedicineMaster'));
+const Billing = lazy(() => import('./pages/Billing'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Purchases = lazy(() => import('./pages/Purchases'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Settings = lazy(() => import('./pages/Settings'));
+const StockAlerts = lazy(() => import('./pages/StockAlerts'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Admin = lazy(() => import('./pages/Admin'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const AccessDenied = lazy(() => import('./pages/AccessDenied'));
 
 /**
  * Protected route component to handle authenticated routes
@@ -25,6 +33,27 @@ const ProtectedRoute = ({ isAuthenticated, isLoading, element }) => {
         return <Spinner />;
     }
     return isAuthenticated ? element : <Navigate to="/login" replace />;
+};
+
+const getDefaultRouteForRole = (user) => {
+    const role = normalizeRole(user?.role);
+    if (hasPermission(role, ACTIONS.BILLING_ACCESS)) return '/billing';
+    if (hasPermission(role, ACTIONS.TRANSACTIONS_MANAGE)) return '/dashboard';
+    return '/profile';
+};
+
+const ActionProtectedRoute = ({ user, isLoading, action, element }) => {
+    if (isLoading) {
+        return <Spinner />;
+    }
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    const normalizedRole = normalizeRole(user?.role);
+    if (!hasPermission(normalizedRole, action)) {
+        return <AccessDenied />;
+    }
+    return element;
 };
 
 /**
@@ -45,7 +74,7 @@ const AdminRoute = ({ user, isLoading, element }) => {
     if (!user) {
         return <Navigate to="/admin/login" replace />;
     }
-    return user?.role === 'admin' ? element : <Navigate to="/dashboard" replace />;
+    return user?.role === 'admin' ? element : <AccessDenied />;
 };
 
 /**
@@ -53,189 +82,224 @@ const AdminRoute = ({ user, isLoading, element }) => {
  * Handles initial user state restoration and route protection
  */
 const AppContent = () => {
-    const { user, setUser } = useGlobalContext();
+    const { user, setUser, getCurrentUser } = useGlobalContext();
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    /**
-     * Initialize user from localStorage on app mount
-     * Only called once to restore persisted auth state
-     */
     useEffect(() => {
-        try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                const parsedUser = JSON.parse(storedUser);
-                setUser(parsedUser);
+        let isMounted = true;
+        const bootstrapSession = async () => {
+            const result = await getCurrentUser({ silent: true });
+            if (isMounted) {
+                setUser(result.success ? result.data : null);
+                setIsLoading(false);
             }
-        } catch (err) {
-            console.error('Failed to restore user from localStorage:', err);
-            setError('Failed to restore session. Please log in again.');
-            localStorage.removeItem('user');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [setUser]);
-
-    // Show error fallback if user restoration failed
-    if (error) {
-        return (
-            <div className="error-container">
-                <h2>Session Error</h2>
-                <p>{error}</p>
-                <Routes>
-                    <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
-            </div>
-        );
-    }
+        };
+        bootstrapSession();
+        return () => {
+            isMounted = false;
+        };
+    }, [getCurrentUser, setUser]);
 
     return (
         <>
-            <Routes>
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Navigate to="/dashboard" replace />}
-                        />
-                    }
-                />
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Home />}
-                        />
-                    }
-                />
-                <Route
-                    path="/transactions"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<History />}
-                        />
-                    }
-                />
-                <Route
-                    path="/add"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<AddTransaction />}
-                        />
-                    }
-                />
-                <Route
-                    path="/budget"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Budget />}
-                        />
-                    }
-                />
-                <Route
-                    path="/categories"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Categories />}
-                        />
-                    }
-                />
-                <Route
-                    path="/reports"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Reports />}
-                        />
-                    }
-                />
-                <Route
-                    path="/profile"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Profile />}
-                        />
-                    }
-                />
-                <Route
-                    path="/admin"
-                    element={
-                        <AdminRoute
-                            user={user}
-                            isLoading={isLoading}
-                            element={<Admin />}
-                        />
-                    }
-                />
-                <Route
-                    path="/analytics"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Budget />}
-                        />
-                    }
-                />
-                <Route
-                    path="/history"
-                    element={
-                        <ProtectedRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<History />}
-                        />
-                    }
-                />
-                <Route
-                    path="/login"
-                    element={
-                        <PublicRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Login />}
-                        />
-                    }
-                />
-                <Route
-                    path="/signup"
-                    element={
-                        <PublicRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<Signup />}
-                        />
-                    }
-                />
-                <Route
-                    path="/admin/login"
-                    element={
-                        <PublicRoute
-                            isAuthenticated={!!user}
-                            isLoading={isLoading}
-                            element={<AdminLogin />}
-                        />
-                    }
-                />
-                {/* Catch-all route for 404 pages */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<Spinner />}>
+                <Routes>
+                    {/* Session entrypoint */}
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute
+                                isAuthenticated={!!user}
+                                isLoading={isLoading}
+                                element={<Navigate to={getDefaultRouteForRole(user)} replace />}
+                            />
+                        }
+                    />
+                    {/* Main PMS operations */}
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.TRANSACTIONS_MANAGE}
+                                element={<Dashboard />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/sales-history"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.TRANSACTIONS_MANAGE}
+                                element={<SalesHistory />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/medicine-master"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.MEDICINE_WRITE}
+                                element={<MedicineMaster />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/billing"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.BILLING_ACCESS}
+                                element={<Billing />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/inventory"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.MEDICINE_WRITE}
+                                element={<Categories />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/purchases"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.STOCK_MANAGE}
+                                element={<Purchases />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/reports"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.REPORTS_VIEW_PROFIT}
+                                element={<Reports />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/stock-alerts"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.MEDICINE_VIEW}
+                                element={<StockAlerts />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/settings"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.SETTINGS_MANAGE}
+                                element={<Settings />}
+                            />
+                        }
+                    />
+                    {/* User/admin account area */}
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute
+                                isAuthenticated={!!user}
+                                isLoading={isLoading}
+                                element={<Profile />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/admin"
+                        element={
+                            <AdminRoute
+                                user={user}
+                                isLoading={isLoading}
+                                element={<Admin />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/analytics"
+                        element={
+                            <ActionProtectedRoute
+                                user={user}
+                                isLoading={isLoading}
+                                action={ACTIONS.REPORTS_VIEW_PROFIT}
+                                element={<Analytics />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/transactions"
+                        element={<Navigate to="/sales-history" replace />}
+                    />
+                    <Route
+                        path="/add"
+                        element={<Navigate to="/medicine-master" replace />}
+                    />
+                    <Route
+                        path="/budget"
+                        element={<Navigate to="/billing" replace />}
+                    />
+                    <Route
+                        path="/categories"
+                        element={<Navigate to="/inventory" replace />}
+                    />
+                    <Route
+                        path="/history"
+                        element={<Navigate to="/sales-history" replace />}
+                    />
+                    <Route
+                        path="/login"
+                        element={
+                            <PublicRoute
+                                isAuthenticated={!!user}
+                                isLoading={isLoading}
+                                element={<Login />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/signup"
+                        element={
+                            <PublicRoute
+                                isAuthenticated={!!user}
+                                isLoading={isLoading}
+                                element={<Signup />}
+                            />
+                        }
+                    />
+                    <Route
+                        path="/admin/login"
+                        element={
+                            <PublicRoute
+                                isAuthenticated={!!user}
+                                isLoading={isLoading}
+                                element={<AdminLogin />}
+                            />
+                        }
+                    />
+                    {/* Catch-all route for 404 pages */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Suspense>
             <Toast />
         </>
     );

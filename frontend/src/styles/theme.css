@@ -1,0 +1,327 @@
+:root {
+  --font-body: "Inter", "Roboto", "Segoe UI", Arial, sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --bg-app: #f0f2f5;
+  --bg-surface: #ffffff;
+  --bg-muted: #f7f9fc;
+  --border: #d9e1ec;
+  --text: #0f172a;
+  --text-muted: #64748b;
+
+  --primary: #1890ff;
+  --primary-700: #1677ff;
+  --income: #22c55e;
+  --outflow: #dc2626;
+  --warn: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg-app);
+}
+
+body.theme-dark {
+  --bg-app: #0b1220;
+  --bg-surface: #111827;
+  --bg-muted: #1f2937;
+  --border: #334155;
+  --text: #e5e7eb;
+  --text-muted: #94a3b8;
+  --primary: #60a5fa;
+  --primary-700: #3b82f6;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+  font-weight: 700;
+}
+
+h2 {
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 700;
+}
+
+a {
+  color: inherit;
+}
+
+/* Global Ant Design consistency */
+.ant-app,
+.ant-typography,
+.ant-btn,
+.ant-input,
+.ant-input-number,
+.ant-select,
+.ant-table,
+.ant-card {
+  font-family: var(--font-body);
+}
+
+.ant-layout {
+  background: var(--bg-app);
+}
+
+.ant-layout-content {
+  background: transparent;
+}
+
+.ant-card {
+  border-color: var(--border);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.ant-card .ant-card-head {
+  min-height: 46px;
+  border-bottom-color: var(--border);
+}
+
+.ant-card .ant-card-head-title {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ant-btn {
+  min-height: 36px;
+  font-weight: 600;
+}
+
+.ant-btn-primary {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker,
+.ant-input-affix-wrapper {
+  border-color: var(--border) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-number-focused,
+.ant-picker-focused,
+.ant-select-focused .ant-select-selector,
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16) !important;
+}
+
+.ant-table-wrapper .ant-table {
+  font-size: 14px;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-weight: 700;
+  color: #334155;
+  border-bottom-color: var(--border);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom-color: #e7edf6;
+}
+
+.ant-table-wrapper .ant-pagination {
+  margin-top: 14px;
+}
+
+.ant-tag {
+  font-weight: 600;
+}
+
+.ant-alert {
+  border-radius: 6px;
+}
+
+/* Dark mode mapping for Ant Design components */
+body.theme-dark .ant-layout,
+body.theme-dark .ant-layout-header,
+body.theme-dark .ant-layout-sider,
+body.theme-dark .ant-layout-content {
+  background: #0b1220 !important;
+}
+
+body.theme-dark .ant-card,
+body.theme-dark .ant-modal-content,
+body.theme-dark .ant-drawer-content,
+body.theme-dark .ant-dropdown-menu {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+body.theme-dark .ant-card .ant-card-head,
+body.theme-dark .ant-card .ant-card-head-title,
+body.theme-dark .ant-typography,
+body.theme-dark .ant-descriptions-item-label,
+body.theme-dark .ant-descriptions-item-content,
+body.theme-dark .ant-table,
+body.theme-dark .ant-table-cell,
+body.theme-dark .ant-empty-description {
+  color: #e5e7eb !important;
+}
+
+body.theme-dark .ant-input,
+body.theme-dark .ant-input-number,
+body.theme-dark .ant-picker,
+body.theme-dark .ant-input-affix-wrapper,
+body.theme-dark .ant-select-selector {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+body.theme-dark .ant-table-wrapper .ant-table-thead > tr > th {
+  background: #1f2937 !important;
+  border-bottom-color: #334155 !important;
+}
+
+body.theme-dark .ant-table-wrapper .ant-table-tbody > tr > td {
+  background: #111827 !important;
+  border-bottom-color: #334155 !important;
+}
+
+body.theme-dark .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: #1e293b !important;
+}
+
+body.theme-dark .ant-btn-default {
+  background: #1f2937 !important;
+  border-color: #475569 !important;
+  color: #e5e7eb !important;
+}
+
+/* Responsive polish for split content and side panels */
+.dashboard-content-grid > aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: start;
+  position: sticky;
+  top: 86px;
+  max-height: calc(100vh - 104px);
+  overflow: auto;
+}
+
+.dashboard-content-grid > main > .ant-card,
+.dashboard-content-grid > aside > .ant-card {
+  margin-bottom: 12px;
+}
+
+.dashboard-content-grid > main > .ant-card:last-child,
+.dashboard-content-grid > aside > .ant-card:last-child {
+  margin-bottom: 0;
+}
+
+.appshell-header {
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.appshell-header-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.appshell-header-left .ant-typography {
+  max-width: 100%;
+}
+
+.appshell-header-left .ant-typography h4,
+.appshell-header-left h4.ant-typography {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appshell-header-center {
+  flex: 0 1 460px;
+  min-width: 240px;
+  margin: 0 12px;
+}
+
+.appshell-global-search.ant-input-search {
+  width: 100%;
+}
+
+.appshell-global-search .ant-input {
+  height: 36px;
+}
+
+.appshell-header-right {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 992px) {
+  .ant-layout-header {
+    padding-inline: 12px !important;
+    min-height: 58px;
+  }
+
+  .ant-layout-content {
+    margin: 12px !important;
+  }
+
+  .ant-card {
+    border-radius: 12px;
+  }
+
+  .dashboard-content-grid > aside {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .appshell-header-center {
+    display: none;
+  }
+}
+
+/* Inventory row highlighting */
+.inventory-row-expired td {
+  background: #fff1f2 !important;
+}
+
+.inventory-row-low td {
+  background: #fffbeb !important;
+}
+
+body.theme-dark .inventory-row-expired td {
+  background: #3f1d24 !important;
+}
+
+body.theme-dark .inventory-row-low td {
+  background: #3a2d0c !important;
+}
+

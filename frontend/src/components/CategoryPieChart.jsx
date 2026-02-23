@@ -4,14 +4,14 @@ import { useGlobalContext } from '../context/globalContext';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#14b8a6', '#8b5cf6', '#f43f5e', '#06b6d4', '#84cc16'];
 
-const CategoryPieChart = ({ expenses: externalExpenses }) => {
-  const { expenses } = useGlobalContext();
-  const sourceExpenses = Array.isArray(externalExpenses) ? externalExpenses : expenses;
+const CategoryPieChart = ({ transactions: externalTransactions }) => {
+  const { transactions } = useGlobalContext();
+  const sourceTransactions = Array.isArray(externalTransactions) ? externalTransactions : transactions;
   const [activeIndex, setActiveIndex] = React.useState(-1);
 
   const dataMap = {};
-  sourceExpenses.forEach((item) => {
-    if ((item.type || 'expense') !== 'expense') return;
+  sourceTransactions.forEach((item) => {
+    if ((item.type || 'outflow') === 'income') return;
     const amount = Number(item.amount || 0);
     if (!item.category || !Number.isFinite(amount)) return;
     dataMap[item.category] = (dataMap[item.category] || 0) + amount;
@@ -68,10 +68,11 @@ const CategoryPieChart = ({ expenses: externalExpenses }) => {
           </PieChart>
         </ResponsiveContainer>
       ) : (
-        <div className="empty-state">No expense data yet.</div>
+        <div className="empty-state">No transaction data yet.</div>
       )}
     </div>
   );
 };
 
 export default CategoryPieChart;
+

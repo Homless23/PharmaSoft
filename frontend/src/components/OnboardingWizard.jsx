@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Button, InputNumber, Modal, Slider, Space, Typography } from 'antd';
 import { useGlobalContext } from '../context/globalContext';
 
 const OnboardingWizard = ({ onClose }) => {
+  const { Title, Text } = Typography;
   const { autoAllocateBudgets, getData } = useGlobalContext();
-  const [income, setIncome] = useState('');
+  const [income, setIncome] = useState(null);
   const [savingsRate, setSavingsRate] = useState(20);
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState(1);
@@ -27,47 +29,28 @@ const OnboardingWizard = ({ onClose }) => {
   };
 
   return (
-    <div className="wizard-overlay">
-      <div className="wizard-card">
-        {step === 1 ? (
-          <>
-            <h2>Smart Budget Assistant</h2>
-            <p>Set your income once and distribute category budgets using a realistic split.</p>
-            <input
-              className="input"
-              type="number"
-              placeholder="Monthly income"
-              value={income}
-              onChange={(e) => setIncome(e.target.value)}
-            />
-            <div style={{ marginTop: '0.8rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem' }}>Savings Goal: {savingsRate}%</label>
-              <input
-                type="range"
-                min="0"
-                max="80"
-                step="5"
-                value={savingsRate}
-                onChange={(e) => setSavingsRate(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '1.2rem' }}>
-              <button className="primary-btn" disabled={isSaving || !income} onClick={handleAutoBudget}>
-                {isSaving ? 'Applying...' : 'Apply Plan'}
-              </button>
-              <button className="ghost-btn" onClick={onClose}>Cancel</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2>Budgets Applied</h2>
-            <p>All categories were updated based on your income and savings preference.</p>
-            <button className="primary-btn" onClick={onClose}>Done</button>
-          </>
-        )}
-      </div>
-    </div>
+    <Modal open onCancel={onClose} footer={null} title={step === 1 ? 'Smart Budget Assistant' : 'Budgets Applied'}>
+      {step === 1 ? (
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Text>Set your income once and distribute category budgets using a realistic split.</Text>
+          <InputNumber style={{ width: '100%' }} min={0} value={income} onChange={setIncome} placeholder="Monthly income" />
+          <Text>Savings Goal: {savingsRate}%</Text>
+          <Slider min={0} max={80} step={5} value={Number(savingsRate)} onChange={setSavingsRate} />
+          <Space>
+            <Button type="primary" loading={isSaving} disabled={!income} onClick={handleAutoBudget}>
+              Apply Plan
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </Space>
+        </Space>
+      ) : (
+        <Space direction="vertical">
+          <Title level={4}>Budgets Applied</Title>
+          <Text>All categories were updated based on your income and savings preference.</Text>
+          <Button type="primary" onClick={onClose}>Done</Button>
+        </Space>
+      )}
+    </Modal>
   );
 };
 

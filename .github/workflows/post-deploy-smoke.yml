@@ -1,0 +1,44 @@
+name: Post Deploy Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Production API base URL (example: https://api.example.com/api)"
+        required: true
+        type: string
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Health probes
+        env:
+          OPS_API_BASE: ${{ github.event.inputs.base_url }}
+        run: npm run ops:health-check
+
+      - name: Billing smoke flow
+        env:
+          MONGO_URI: ${{ secrets.CI_MONGO_URI }}
+          JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+          SMOKE_API_BASE: ${{ github.event.inputs.base_url }}
+          SMOKE_ADMIN_EMAIL: ${{ secrets.SMOKE_ADMIN_EMAIL }}
+          SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+        run: npm run smoke:billing
+

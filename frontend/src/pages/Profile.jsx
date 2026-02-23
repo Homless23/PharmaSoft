@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Alert, Avatar, Button, Card, Col, Form, Input, Row, Space, Typography } from 'antd';
 import AppShell from '../components/AppShell';
 import { useGlobalContext } from '../context/globalContext';
-import './DashboardUI.css';
 
 const Profile = () => {
+  const { Title, Text } = Typography;
   const {
     user,
     error,
@@ -50,24 +51,22 @@ const Profile = () => {
     loadProfile();
   }, [getCurrentUser, user]);
 
-  const initials = useMemo(() => {
-    const raw = String(profile.name || user?.name || 'U').trim();
-    if (!raw) return 'U';
-    const parts = raw.split(/\s+/).filter(Boolean);
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }, [profile.name, user]);
-
-  const onSaveName = async (event) => {
+  const onSaveProfile = async (event) => {
     event.preventDefault();
+    setLocalError('');
     const cleaned = String(nameInput || '').trim();
     if (!cleaned) return;
 
     setIsSavingName(true);
-    const result = await updateProfile({ name: cleaned });
+    const payload = {
+      name: cleaned
+    };
+    const result = await updateProfile(payload);
     setIsSavingName(false);
     if (!result.success) return;
-    setProfile((prev) => ({ ...prev, name: cleaned }));
+    setProfile((prev) => ({
+      ...prev, name: cleaned
+    }));
   };
 
   const onSavePassword = async (event) => {
@@ -89,90 +88,84 @@ const Profile = () => {
     if (!result.success) return;
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
   };
+  const profileInitial = String(nameInput || profile.name || user?.name || 'U').trim().charAt(0).toUpperCase() || 'U';
 
   return (
     <AppShell
       title="Profile"
       subtitle="Manage account details and security settings"
     >
-      {(loading || isPageLoading) ? <div className="inline-loading">Loading profile...</div> : null}
-      {(error || localError) ? <div className="error-banner">{localError || error}</div> : null}
+      {(loading || isPageLoading) ? <Alert style={{ marginBottom: 16 }} type="info" showIcon message="Loading profile..." /> : null}
+      {(error || localError) ? <Alert style={{ marginBottom: 16 }} type="error" showIcon message={localError || error} /> : null}
 
-      <section className="profile-grid">
-        <aside className="ui-card profile-side-card">
-          <div className="profile-avatar">{initials}</div>
-          <h3>{profile.name || 'User'}</h3>
-          <p>{profile.email || '-'}</p>
-          <small className="muted">
-            Member since {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Recently'}
-          </small>
-        </aside>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={8}>
+          <Card>
+            <Space direction="vertical" size={8} style={{ width: '100%', textAlign: 'center' }}>
+              <Avatar size={72}>{profileInitial}</Avatar>
+              <Title level={4} style={{ margin: 0 }}>{profile.name || 'User'}</Title>
+              <Text type="secondary">{profile.email || '-'}</Text>
+              <Text type="secondary">
+                Member since {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Recently'}
+              </Text>
+            </Space>
+          </Card>
+        </Col>
 
-        <div className="profile-main-stack">
-          <article className="ui-card">
-            <h3 style={{ marginBottom: '10px' }}>Account</h3>
-            <form className="form-grid cols-2" onSubmit={onSaveName}>
-              <div className="form-field">
-                <label>Display Name</label>
-                <input
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>Email</label>
-                <input value={profile.email} disabled />
-              </div>
-              <div>
-                <button className="btn-primary" type="submit" disabled={isSavingName}>
-                  {isSavingName ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </article>
+        <Col xs={24} lg={16}>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card title="Account">
+              <Form layout="vertical" onSubmitCapture={onSaveProfile}>
+                <Row gutter={12}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Display Name" required>
+                      <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Email">
+                      <Input value={profile.email} disabled />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Button type="primary" htmlType="submit" loading={isSavingName}>Save Changes</Button>
+              </Form>
+            </Card>
 
-          <article className="ui-card">
-            <h3 style={{ marginBottom: '10px' }}>Security</h3>
-            <form className="form-grid cols-2" onSubmit={onSavePassword}>
-              <div className="form-field">
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>New Password</label>
-                <input
-                  type="password"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>Confirm Password</label>
-                <input
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <div style={{ alignSelf: 'end' }}>
-                <button className="btn-primary" type="submit" disabled={isSavingPassword}>
-                  {isSavingPassword ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </form>
-          </article>
-        </div>
-      </section>
+            <Card title="Security">
+              <Form layout="vertical" onSubmitCapture={onSavePassword}>
+                <Row gutter={12}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Current Password" required>
+                      <Input.Password
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="New Password" required>
+                      <Input.Password
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Confirm Password" required>
+                      <Input.Password
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Button type="primary" htmlType="submit" loading={isSavingPassword}>Update Password</Button>
+              </Form>
+            </Card>
+          </Space>
+        </Col>
+      </Row>
     </AppShell>
   );
 };

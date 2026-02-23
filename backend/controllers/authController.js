@@ -2,17 +2,65 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const LoginEvent = require('../models/LoginEvent');
+const { writeAuditLog } = require('../utils/auditLog');
+const { sendError } = require('../utils/apiResponse');
+
+const MAX_AVATAR_DATA_URL_LENGTH = 1800000;
+const AVATAR_DATA_URL_PATTERN = /^data:image\/(png|jpe?g|webp|gif);base64,[a-zA-Z0-9+/=]+$/;
+const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+const TOKEN_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'auth_token';
+const resolveTokenTtlMinutes = () => {
+    const raw = Number(process.env.ACCESS_TOKEN_TTL_MINUTES || 15);
+    if (!Number.isFinite(raw)) return 15;
+    return Math.min(Math.max(Math.floor(raw), 15), 30);
+};
+const TOKEN_TTL_MINUTES = resolveTokenTtlMinutes();
+const TOKEN_MAX_AGE_MS = TOKEN_TTL_MINUTES * 60 * 1000;
+
+const sanitizeAvatarDataUrl = (value) => {
+    const next = String(value || '').trim();
+    if (!next) return '';
+    if (next.length > MAX_AVATAR_DATA_URL_LENGTH) {
+        return null;
+    }
+    if (!AVATAR_DATA_URL_PATTERN.test(next)) {
+        return null;
+    }
+    return next;
+};
 
 // Generate JWT
-const generateToken = (id) => {
+const generateToken = (user) => {
     if (!process.env.JWT_SECRET) {
         throw new Error('JWT_SECRET is not configured');
     }
 
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
+    return jwt.sign({
+        id: String(user?._id || user?.id || ''),
+        tokenVersion: Number(user?.tokenVersion || 0)
+    }, process.env.JWT_SECRET, {
+        expiresIn: `${TOKEN_TTL_MINUTES}m`,
     });
 }
+
+const getCookieOptions = () => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: TOKEN_MAX_AGE_MS,
+        path: '/'
+    };
+};
+
+const setAuthCookie = (res, token) => {
+    res.cookie(TOKEN_COOKIE_NAME, token, getCookieOptions());
+};
+
+const clearAuthCookie = (res) => {
+    res.clearCookie(TOKEN_COOKIE_NAME, { ...getCookieOptions(), maxAge: 0 });
+};
 
 const recordLoginEvent = async ({ user, email, success, req }) => {
     try {
@@ -37,28 +85,31 @@ const registerUser = async (req, res) => {
     const cleanedName = String(name || '').trim();
     const cleanedPassword = String(password || '');
     const cleanedConfirmPassword = String(confirmPassword || '');
-    const hasStrongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(cleanedPassword);
+    const hasStrongPassword = STRONG_PASSWORD_PATTERN.test(cleanedPassword);
 
     try {
         if (!cleanedName || !normalizedEmail || !cleanedPassword || !cleanedConfirmPassword) {
-            return res.status(400).json({ message: 'Please add all fields' });
+            return sendError(res, 400, 'Please add all fields', 'AUTH_REGISTER_FIELDS_REQUIRED');
         }
         if (cleanedName.length < 2 || cleanedName.length > 60) {
-            return res.status(400).json({ message: 'Name must be between 2 and 60 characters' });
+            return sendError(res, 400, 'Name must be between 2 and 60 characters', 'AUTH_REGISTER_NAME_INVALID');
         }
         if (!hasStrongPassword) {
-            return res.status(400).json({
-                message: 'Password must be at least 8 chars and include uppercase, lowercase, number, and symbol'
-            });
+            return sendError(
+                res,
+                400,
+                'Password must be at least 8 chars and include uppercase, lowercase, number, and symbol',
+                'AUTH_REGISTER_PASSWORD_WEAK'
+            );
         }
         if (cleanedPassword !== cleanedConfirmPassword) {
-            return res.status(400).json({ message: 'Password and confirm password do not match' });
+            return sendError(res, 400, 'Password and confirm password do not match', 'AUTH_REGISTER_PASSWORD_MISMATCH');
         }
 
         // Check if user exists
         const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+            return sendError(res, 400, 'User already exists', 'AUTH_REGISTER_USER_EXISTS');
         }
 
         // Create user (password hashing is handled in Model)
@@ -69,24 +120,35 @@ const registerUser = async (req, res) => {
         });
 
         if (user) {
+            const token = generateToken(user);
+            setAuthCookie(res, token);
+            await writeAuditLog({
+                req,
+                userId: user._id,
+                action: 'AUTH_REGISTER',
+                entityType: 'user',
+                entityId: user._id,
+                status: 'success',
+                details: { email: user.email, role: user.role }
+            });
             res.status(201).json({
                 _id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role,
-                token: generateToken(user._id)
+                avatarDataUrl: user.avatarDataUrl || '',
+                role: user.role
             });
         } else {
-            res.status(400).json({ message: 'Invalid user data' });
+            return sendError(res, 400, 'Invalid user data', 'AUTH_REGISTER_INVALID_DATA');
         }
     } catch (error) {
         // Handle unique index race condition / duplicate insertion attempts cleanly.
         if (error?.code === 11000) {
-            return res.status(400).json({ message: 'User already exists' });
+            return sendError(res, 400, 'User already exists', 'AUTH_REGISTER_USER_EXISTS');
         }
 
         console.log(error);
-        res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_REGISTER_ERROR');
     }
 }
 
@@ -105,20 +167,40 @@ const loginUser = async (req, res) => {
             user.lastLoginAt = new Date();
             await user.save();
             await recordLoginEvent({ user, email: normalizedEmail, success: true, req });
+            const token = generateToken(user);
+            setAuthCookie(res, token);
+            await writeAuditLog({
+                req,
+                userId: user._id,
+                action: 'AUTH_LOGIN',
+                entityType: 'user',
+                entityId: user._id,
+                status: 'success',
+                details: { email: user.email, role: user.role }
+            });
             res.json({
                 _id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role,
-                token: generateToken(user._id)
+                avatarDataUrl: user.avatarDataUrl || '',
+                role: user.role
             });
         } else {
             await recordLoginEvent({ user: null, email: normalizedEmail, success: false, req });
-            res.status(401).json({ message: 'Invalid Credentials' });
+            await writeAuditLog({
+                req,
+                userId: null,
+                action: 'AUTH_LOGIN',
+                entityType: 'user',
+                entityId: normalizedEmail,
+                status: 'failure',
+                details: { email: normalizedEmail }
+            });
+            return sendError(res, 401, 'Invalid Credentials', 'AUTH_LOGIN_INVALID_CREDENTIALS');
         }
     } catch (error) {
         console.log(error);
-        res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_LOGIN_ERROR');
     }
 }
 
@@ -133,23 +215,46 @@ const adminLogin = async (req, res) => {
         const isMatch = user ? await bcrypt.compare(String(password || ''), user.password) : false;
         if (!user || !isMatch || user.role !== 'admin') {
             await recordLoginEvent({ user: null, email: normalizedEmail, success: false, req });
-            return res.status(401).json({ message: 'Invalid admin credentials' });
+            await writeAuditLog({
+                req,
+                userId: user?._id || null,
+                action: 'AUTH_ADMIN_LOGIN',
+                entityType: 'user',
+                entityId: user?._id || normalizedEmail,
+                status: 'failure',
+                details: { email: normalizedEmail }
+            });
+            return sendError(res, 401, 'Invalid admin credentials', 'AUTH_ADMIN_INVALID_CREDENTIALS');
         }
 
+        if (!user.ownerAdmin || String(user.ownerAdmin) !== String(user._id)) {
+            user.ownerAdmin = user._id;
+        }
         user.lastLoginAt = new Date();
         await user.save();
         await recordLoginEvent({ user, email: normalizedEmail, success: true, req });
+        const token = generateToken(user);
+        setAuthCookie(res, token);
+        await writeAuditLog({
+            req,
+            userId: user._id,
+            action: 'AUTH_ADMIN_LOGIN',
+            entityType: 'user',
+            entityId: user._id,
+            status: 'success',
+            details: { email: user.email, role: user.role }
+        });
 
         return res.json({
             _id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role,
-            token: generateToken(user._id)
+            avatarDataUrl: user.avatarDataUrl || '',
+            role: user.role
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_ADMIN_LOGIN_ERROR');
     }
 };
 
@@ -158,14 +263,14 @@ const adminLogin = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('_id name email createdAt updatedAt');
+        const user = await User.findById(req.user.id).select('_id name email role avatarDataUrl createdAt updatedAt');
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendError(res, 404, 'User not found', 'AUTH_USER_NOT_FOUND');
         }
         return res.json(user);
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_PROFILE_FETCH_ERROR');
     }
 };
 
@@ -173,30 +278,62 @@ const getMe = async (req, res) => {
 // @route   PUT /api/auth/profile
 // @access  Private
 const updateProfile = async (req, res) => {
-    const { name } = req.body;
+    const { name, avatarDataUrl, removeAvatar } = req.body;
     const nextName = String(name || '').trim();
+    const shouldRemoveAvatar = Boolean(removeAvatar);
 
     try {
         if (!nextName) {
-            return res.status(400).json({ message: 'Name is required' });
+            return sendError(res, 400, 'Name is required', 'AUTH_PROFILE_NAME_REQUIRED');
+        }
+        if (nextName.length < 2 || nextName.length > 60) {
+            return sendError(res, 400, 'Name must be between 2 and 60 characters', 'AUTH_PROFILE_NAME_INVALID');
         }
 
         const user = await User.findById(req.user.id);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendError(res, 404, 'User not found', 'AUTH_USER_NOT_FOUND');
+        }
+
+        if (shouldRemoveAvatar) {
+            user.avatarDataUrl = '';
+        } else if (typeof avatarDataUrl !== 'undefined') {
+            const cleanedAvatar = sanitizeAvatarDataUrl(avatarDataUrl);
+            if (cleanedAvatar === null) {
+                return sendError(
+                    res,
+                    400,
+                    'Invalid profile image. Use PNG, JPG, WEBP, or GIF under 1.5MB.',
+                    'AUTH_PROFILE_AVATAR_INVALID'
+                );
+            }
+            user.avatarDataUrl = cleanedAvatar;
         }
 
         user.name = nextName;
         await user.save();
+        await writeAuditLog({
+            req,
+            userId: user._id,
+            action: 'AUTH_PROFILE_UPDATE',
+            entityType: 'user',
+            entityId: user._id,
+            status: 'success',
+            details: {
+                nameChanged: true,
+                avatarUpdated: typeof avatarDataUrl !== 'undefined' || shouldRemoveAvatar
+            }
+        });
 
         return res.json({
             _id: user.id,
             name: user.name,
-            email: user.email
+            email: user.email,
+            avatarDataUrl: user.avatarDataUrl || ''
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_PROFILE_UPDATE_ERROR');
     }
 };
 
@@ -205,33 +342,71 @@ const updateProfile = async (req, res) => {
 // @access  Private
 const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
+    const nextPassword = String(newPassword || '');
 
     try {
         if (!currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'Please provide current and new passwords' });
+            return sendError(res, 400, 'Please provide current and new passwords', 'AUTH_PASSWORD_FIELDS_REQUIRED');
         }
-        if (String(newPassword).length < 6) {
-            return res.status(400).json({ message: 'New password must be at least 6 characters' });
+        if (!STRONG_PASSWORD_PATTERN.test(nextPassword)) {
+            return sendError(
+                res,
+                400,
+                'New password must be at least 8 chars and include uppercase, lowercase, number, and symbol',
+                'AUTH_PASSWORD_WEAK'
+            );
         }
 
         const user = await User.findById(req.user.id);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendError(res, 404, 'User not found', 'AUTH_USER_NOT_FOUND');
         }
 
         const isMatch = await user.matchPassword(String(currentPassword));
         if (!isMatch) {
-            return res.status(400).json({ message: 'Current password is incorrect' });
+            return sendError(res, 400, 'Current password is incorrect', 'AUTH_PASSWORD_CURRENT_INVALID');
+        }
+        if (String(currentPassword) === nextPassword) {
+            return sendError(
+                res,
+                400,
+                'New password must be different from current password',
+                'AUTH_PASSWORD_REUSE_NOT_ALLOWED'
+            );
         }
 
-        user.password = String(newPassword);
+        user.password = nextPassword;
+        user.tokenVersion = Number(user.tokenVersion || 0) + 1;
         await user.save();
+        const token = generateToken(user);
+        setAuthCookie(res, token);
+        await writeAuditLog({
+            req,
+            userId: user._id,
+            action: 'AUTH_PASSWORD_CHANGE',
+            entityType: 'user',
+            entityId: user._id,
+            status: 'success'
+        });
 
         return res.json({ message: 'Password updated successfully' });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'AUTH_PASSWORD_CHANGE_ERROR');
     }
 };
 
-module.exports = { registerUser, loginUser, adminLogin, getMe, updateProfile, changePassword };
+const logoutUser = async (req, res) => {
+    await writeAuditLog({
+        req,
+        userId: req.user?.id || null,
+        action: 'AUTH_LOGOUT',
+        entityType: 'user',
+        entityId: req.user?.id || '',
+        status: 'success'
+    });
+    clearAuthCookie(res);
+    return res.json({ message: 'Logged out successfully' });
+};
+
+module.exports = { registerUser, loginUser, adminLogin, logoutUser, getMe, updateProfile, changePassword };

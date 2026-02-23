@@ -1,21 +1,21 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import api from '../services/api';
+import { ACTIONS, hasPermission, normalizeRole } from '../config/rbacPolicy';
+import { getApiErrorMessage as getApiErrorMessageUtil } from '../utils/apiError';
 
 const DEFAULT_CATEGORIES = [
-  { name: 'Food', budget: 0 },
-  { name: 'Transport', budget: 0 },
-  { name: 'Bills', budget: 0 },
-  { name: 'Shopping', budget: 0 },
-  { name: 'Entertainment', budget: 0 },
-  { name: 'Health', budget: 0 },
-  { name: 'Other', budget: 0 },
-  { name: 'Salary', budget: 0 },
-  { name: 'Freelance', budget: 0 },
-  { name: 'Investments', budget: 0 }
+  { name: 'Paracetamol 500mg', sku: 'MED-001', batchNumber: 'B-2401', manufacturer: 'Cipla', unitPrice: 20, stockQty: 120, budget: 0 },
+  { name: 'Amoxicillin 250mg', sku: 'MED-002', batchNumber: 'B-2402', manufacturer: 'Sun Pharma', unitPrice: 55, stockQty: 80, budget: 0 },
+  { name: 'Cetirizine 10mg', sku: 'MED-003', batchNumber: 'B-2403', manufacturer: 'Dr Reddy', unitPrice: 18, stockQty: 150, budget: 0 },
+  { name: 'ORS Sachet', sku: 'MED-004', batchNumber: 'B-2404', manufacturer: 'Dabur', unitPrice: 30, stockQty: 200, budget: 0 }
 ];
 
 const normalizeCategoryName = (value) => String(value || '').trim().toLowerCase();
-
+const toTimestamp = (value) => {
+  const parsed = Date.parse(String(value || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const DEMO_SEED_ENABLED = String(process.env.REACT_APP_ENABLE_DEMO_MEDICINE_SEED || '').trim().toLowerCase() === 'true';
 const dedupeCategoriesByName = (items) => {
   const list = Array.isArray(items) ? items : [];
   const map = new Map();
@@ -31,7 +31,7 @@ const dedupeCategoriesByName = (items) => {
 
     const pickCurrent =
       (existing.active === false && item.active !== false) ||
-      Number(item?.date || item?.updatedAt || 0) > Number(existing?.date || existing?.updatedAt || 0);
+      toTimestamp(item?.updatedAt || item?.date) > toTimestamp(existing?.updatedAt || existing?.date);
     if (pickCurrent) {
       map.set(key, item);
     }
@@ -43,17 +43,10 @@ const dedupeCategoriesByName = (items) => {
 export const GlobalContext = React.createContext();
 
 export const GlobalProvider = ({ children }) => {
-  const [notifications, setNotifications] = useState(() => {
-    try {
-      const raw = localStorage.getItem('notifications');
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+  // Unified pharmacy transaction ledger (sales/purchases/income).
+  const [notifications, setNotifications] = useState([]);
   const [user, setUser] = useState(null);
-  const [expenses, setExpenses] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [historyPagination, setHistoryPagination] = useState({
     page: 1,
@@ -68,12 +61,53 @@ export const GlobalProvider = ({ children }) => {
   const [insights, setInsights] = useState({ metrics: null, insights: [] });
   const [recurringAlerts, setRecurringAlerts] = useState({ dueCount: 0, items: [] });
   const [loading, setLoading] = useState(false);
-  const [lastSyncAt, setLastSyncAt] = useState(0);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
   const [toastTimeoutId, setToastTimeoutId] = useState(null);
+  const lastSyncAtRef = React.useRef(0);
+  const getDataInFlightRef = React.useRef(false);
+  const dataSnapshotRef = React.useRef({ transactions: 0, categories: 0 });
+  const notificationUserId = String(user?._id || user?.id || '').trim();
+
+  React.useEffect(() => {
+    dataSnapshotRef.current = {
+      transactions: transactions.length,
+      categories: categories.length
+    };
+  }, [transactions.length, categories.length]);
+
+  React.useEffect(() => {
+    // Reset throttling/cache guards when auth context changes so each account
+    // immediately fetches its own tenant data.
+    lastSyncAtRef.current = 0;
+    dataSnapshotRef.current = { transactions: 0, categories: 0 };
+    getDataInFlightRef.current = false;
+  }, [notificationUserId]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const loadNotifications = async () => {
+      if (!notificationUserId) {
+        if (mounted) setNotifications([]);
+        return;
+      }
+      try {
+        const res = await api.get('/notifications', { params: { limit: 60 } });
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        if (mounted) setNotifications(rows);
+      } catch {
+        if (mounted) setNotifications([]);
+      }
+    };
+    loadNotifications();
+    return () => {
+      mounted = false;
+    };
+  }, [notificationUserId]);
 
   const pushNotification = useCallback((message, options = {}) => {
+    const scopedUser = options?.scopeUser || user;
+    const scopedUserId = String(scopedUser?._id || scopedUser?.id || '').trim();
     const item = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       message: String(message || ''),
@@ -81,20 +115,34 @@ export const GlobalProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
       read: false
     };
-    setNotifications((prev) => {
-      const next = [item, ...prev].slice(0, 60);
-      localStorage.setItem('notifications', JSON.stringify(next));
-      return next;
-    });
-  }, []);
+    if (!scopedUserId) return;
+    const optimistic = {
+      _id: item.id,
+      message: item.message,
+      type: item.type,
+      read: false,
+      createdAt: item.createdAt
+    };
+    setNotifications((prev) => [optimistic, ...prev].slice(0, 60));
+    api.post('/notifications', { message: item.message, type: item.type })
+      .then((res) => {
+        const created = res?.data;
+        if (!created?._id) return;
+        setNotifications((prev) => [
+          created,
+          ...prev.filter((n) => String(n?._id || '') !== optimistic._id)
+        ].slice(0, 60));
+      })
+      .catch(() => {
+        setNotifications((prev) => prev.filter((n) => String(n?._id || '') !== optimistic._id));
+      });
+  }, [user]);
 
   const markNotificationsRead = useCallback(() => {
-    setNotifications((prev) => {
-      const next = prev.map((n) => ({ ...n, read: true }));
-      localStorage.setItem('notifications', JSON.stringify(next));
-      return next;
-    });
-  }, []);
+    if (!notificationUserId) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    api.post('/notifications/read-all').catch(() => {});
+  }, [notificationUserId]);
 
   const hideToast = useCallback(() => {
     if (toastTimeoutId) {
@@ -129,24 +177,15 @@ export const GlobalProvider = ({ children }) => {
   }, [toastTimeoutId]);
 
   const getApiErrorMessage = useCallback((err, fallback) => {
-    if (err?.response?.data?.message) return err.response.data.message;
-    if (err?.response?.data?.error) return err.response.data.error;
-    if (Array.isArray(err?.response?.data?.errors) && err.response.data.errors[0]?.msg) {
-      return err.response.data.errors[0].msg;
-    }
-    if (err?.code === 'ERR_NETWORK') {
-      return 'Cannot reach backend API. Ensure backend is running on http://localhost:5000.';
-    }
-    return fallback;
+    return getApiErrorMessageUtil(err, fallback);
   }, []);
 
   const registerUser = useCallback(async (userData) => {
     try {
       setError(null);
       const res = await api.post('/auth/register', userData);
-      localStorage.setItem('user', JSON.stringify(res.data));
       setUser(res.data);
-      pushNotification('New account registered successfully', { type: 'success' });
+      pushNotification('New account registered successfully', { type: 'success', scopeUser: res.data });
       return true;
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration Failed'));
@@ -158,9 +197,8 @@ export const GlobalProvider = ({ children }) => {
     try {
       setError(null);
       const res = await api.post('/auth/login', userData);
-      localStorage.setItem('user', JSON.stringify(res.data));
       setUser(res.data);
-      pushNotification('Signed in successfully', { type: 'success' });
+      pushNotification('Signed in successfully', { type: 'success', scopeUser: res.data });
       return true;
     } catch (err) {
       setError(getApiErrorMessage(err, 'Login Failed'));
@@ -169,9 +207,9 @@ export const GlobalProvider = ({ children }) => {
   }, [getApiErrorMessage, pushNotification]);
 
   const logoutUser = useCallback(() => {
-    localStorage.removeItem('user');
+    api.post('/auth/logout').catch(() => {});
     setUser(null);
-    setExpenses([]);
+    setTransactions([]);
     setHistoryItems([]);
     setHistoryPagination({ page: 1, limit: 10, total: 0, totalPages: 1 });
     setCategories([]);
@@ -182,28 +220,41 @@ export const GlobalProvider = ({ children }) => {
     pushNotification('Signed out', { type: 'warning' });
   }, [pushNotification]);
 
-  const getCurrentUser = useCallback(async () => {
+  const getCurrentUser = useCallback(async ({ silent = false } = {}) => {
     try {
-      setError(null);
+      if (!silent) setError(null);
       const res = await api.get('/auth/me');
       return { success: true, data: res.data };
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error fetching profile'));
+      if (!silent) {
+        setError(getApiErrorMessage(err, 'Error fetching profile'));
+      }
       return { success: false, data: null };
     }
   }, [getApiErrorMessage]);
 
-  const updateProfile = useCallback(async ({ name }) => {
+  const updateProfile = useCallback(async ({ name, avatarDataUrl, removeAvatar } = {}) => {
     try {
       setError(null);
-      const res = await api.put('/auth/profile', { name });
+      const payload = { name };
+      if (typeof avatarDataUrl !== 'undefined') {
+        payload.avatarDataUrl = avatarDataUrl;
+      }
+      if (typeof removeAvatar !== 'undefined') {
+        payload.removeAvatar = Boolean(removeAvatar);
+      }
+
+      const res = await api.put('/auth/profile', payload);
       const nextUser = {
         ...(user || {}),
-        name: res.data?.name || name,
-        email: res.data?.email || user?.email
+        name: res.data?.name || name || user?.name,
+        email: res.data?.email || user?.email,
+        role: res.data?.role || user?.role,
+        avatarDataUrl: typeof res.data?.avatarDataUrl === 'string'
+          ? res.data.avatarDataUrl
+          : (removeAvatar ? '' : (avatarDataUrl ?? user?.avatarDataUrl ?? ''))
       };
       setUser(nextUser);
-      localStorage.setItem('user', JSON.stringify(nextUser));
       pushNotification('Profile updated', { type: 'success' });
       return { success: true, data: res.data };
     } catch (err) {
@@ -224,27 +275,27 @@ export const GlobalProvider = ({ children }) => {
     }
   }, [getApiErrorMessage, pushNotification]);
 
-  const getExpenses = useCallback(async () => {
+  const getTransactions = useCallback(async () => {
     try {
-      const res = await api.get('/v1/get-expenses');
+      const res = await api.get('/v1/transactions');
       if (Array.isArray(res.data)) {
-        setExpenses(res.data);
+        setTransactions(res.data);
       } else if (Array.isArray(res.data?.items)) {
-        setExpenses(res.data.items);
+        setTransactions(res.data.items);
       } else {
-        setExpenses([]);
+        setTransactions([]);
       }
       return true;
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error fetching expenses'));
+      setError(getApiErrorMessage(err, 'Error fetching transactions'));
       return false;
     }
   }, [getApiErrorMessage]);
 
-  const getExpenseHistory = useCallback(async (params = {}) => {
+  const getTransactionHistory = useCallback(async (params = {}) => {
     try {
       setHistoryLoading(true);
-      const res = await api.get('/v1/get-expenses', { params });
+      const res = await api.get('/v1/transactions', { params });
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
       const pagination = res.data?.pagination || {
         page: Number(params.page) || 1,
@@ -272,71 +323,105 @@ export const GlobalProvider = ({ children }) => {
     }
   }, [getApiErrorMessage]);
 
-  const addExpense = useCallback(async (expense) => {
+  const createTransaction = useCallback(async (transaction) => {
     try {
       setError(null);
-      await api.post('/v1/add-expense', expense);
-      await getExpenses();
-      pushNotification(`Expense added: ${expense.title}`, { type: 'success' });
-      return true;
+      const res = await api.post('/v1/transactions', transaction);
+      const created = res?.data;
+      if (created && created._id) {
+        setTransactions((prev) => [created, ...prev.filter((item) => item._id !== created._id)]);
+        setHistoryItems((prev) => {
+          const safe = Array.isArray(prev) ? prev : [];
+          if (Number(historyPagination.page || 1) !== 1) return safe;
+          const limit = Number(historyPagination.limit) || 10;
+          return [created, ...safe.filter((item) => item._id !== created._id)].slice(0, limit);
+        });
+        setHistoryPagination((prev) => {
+          const nextTotal = Number(prev?.total || 0) + 1;
+          const limit = Number(prev?.limit || 10);
+          return {
+            ...prev,
+            total: nextTotal,
+            totalPages: Math.max(Math.ceil(nextTotal / limit), 1)
+          };
+        });
+      }
+      pushNotification(`Entry added: ${transaction.title}`, { type: 'success' });
+      return created || true;
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error adding expense'));
+      setError(getApiErrorMessage(err, 'Error adding transaction'));
       return false;
     }
-  }, [getApiErrorMessage, getExpenses, pushNotification]);
+  }, [getApiErrorMessage, historyPagination.limit, historyPagination.page, pushNotification]);
 
-  const addTransaction = addExpense;
-
-  const deleteExpense = useCallback(async (id) => {
+  const removeTransaction = useCallback(async (id) => {
     try {
       setError(null);
-      await api.delete(`/v1/delete-expense/${id}`);
-      await getExpenses();
-      pushNotification('Expense deleted', { type: 'warning' });
+      await api.delete(`/v1/transactions/${id}`);
+      await getTransactions();
+      pushNotification('Entry deleted', { type: 'warning' });
       return true;
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error deleting expense'));
+      setError(getApiErrorMessage(err, 'Error deleting transaction'));
       return false;
     }
-  }, [getApiErrorMessage, getExpenses, pushNotification]);
+  }, [getApiErrorMessage, getTransactions, pushNotification]);
 
-  const updateExpense = useCallback(async (id, payload) => {
+  const updateTransaction = useCallback(async (id, payload) => {
     try {
       setError(null);
-      await api.put(`/v1/update-expense/${id}`, payload);
-      await getExpenses();
-      pushNotification(`Expense updated: ${payload?.title || 'item'}`, { type: 'info' });
+      await api.put(`/v1/transactions/${id}`, payload);
+      await getTransactions();
+      pushNotification(`Entry updated: ${payload?.title || 'item'}`, { type: 'info' });
       return true;
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error updating expense'));
+      setError(getApiErrorMessage(err, 'Error updating transaction'));
       return false;
     }
-  }, [getApiErrorMessage, getExpenses, pushNotification]);
+  }, [getApiErrorMessage, getTransactions, pushNotification]);
 
-  const generateRecurringExpense = useCallback(async (id) => {
+  const generateRecurringTransaction = useCallback(async (id) => {
     try {
       setError(null);
-      const res = await api.post(`/v1/generate-recurring/${id}`);
-      await getExpenses();
+      const res = await api.post(`/v1/transactions/${id}/generate-recurring`);
+      await getTransactions();
       return { success: true, data: res.data };
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error generating recurring expense'));
+      setError(getApiErrorMessage(err, 'Error generating recurring transaction'));
       return { success: false, data: null };
     }
-  }, [getApiErrorMessage, getExpenses]);
+  }, [getApiErrorMessage, getTransactions]);
 
-  const addCategory = useCallback(async (name, budget = 0) => {
-    const cleanedName = String(name || '').trim();
+  const transactionItems = transactions;
+  const transactionHistoryItems = historyItems;
+  const transactionHistoryPagination = historyPagination;
+  const transactionHistoryLoading = historyLoading;
+
+  const addCategory = useCallback(async (nameOrPayload, budget = 0) => {
+    const isObjectPayload = typeof nameOrPayload === 'object' && nameOrPayload !== null;
+    const cleanedName = isObjectPayload
+      ? String(nameOrPayload.name || '').trim()
+      : String(nameOrPayload || '').trim();
     if (!cleanedName) return false;
 
     try {
       setError(null);
-      const res = await api.post('/v1/categories/add', { name: cleanedName, budget: Number(budget) || 0, active: true });
+      const payload = isObjectPayload
+        ? {
+          ...nameOrPayload,
+          name: cleanedName,
+          budget: Number(nameOrPayload.budget) || 0,
+          unitPrice: Math.max(Number(nameOrPayload.unitPrice) || 0, 0),
+          stockQty: Math.max(Number(nameOrPayload.stockQty) || 0, 0),
+          active: nameOrPayload.active !== false
+        }
+        : { name: cleanedName, budget: Number(budget) || 0, active: true };
+      const res = await api.post('/v1/categories/add', payload);
       setCategories((prev) => dedupeCategoriesByName([...prev, res.data]));
-      pushNotification(`Category created: ${cleanedName}`, { type: 'success' });
+      pushNotification(`Medicine created: ${cleanedName}`, { type: 'success' });
       return true;
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Error adding category'));
+      setError(getApiErrorMessage(err, 'Error adding medicine'));
       return false;
     }
   }, [getApiErrorMessage, pushNotification]);
@@ -363,9 +448,10 @@ export const GlobalProvider = ({ children }) => {
       return true;
     } catch (err) {
       setCategorySummary({ items: [], totals: { totalSpent: 0, totalBudget: 0 } });
-      return true;
+      setError(getApiErrorMessage(err, 'Error fetching category summary'));
+      return false;
     }
-  }, []);
+  }, [getApiErrorMessage]);
 
   const getGoals = useCallback(async () => {
     try {
@@ -419,7 +505,7 @@ export const GlobalProvider = ({ children }) => {
 
   const getInsights = useCallback(async () => {
     try {
-      const res = await api.get('/v1/insights');
+      const res = await api.get('/v1/transactions/insights');
       const payload = res?.data || {};
       setInsights({
         metrics: payload.metrics || null,
@@ -428,13 +514,14 @@ export const GlobalProvider = ({ children }) => {
       return true;
     } catch (err) {
       setInsights({ metrics: null, insights: [] });
-      return true;
+      setError(getApiErrorMessage(err, 'Error fetching operational insights'));
+      return false;
     }
-  }, []);
+  }, [getApiErrorMessage]);
 
   const getRecurringAlerts = useCallback(async () => {
     try {
-      const res = await api.get('/v1/recurring-alerts');
+      const res = await api.get('/v1/transactions/recurring-alerts');
       const payload = res?.data || {};
       const dueCount = Number(payload.dueCount || 0);
       const items = Array.isArray(payload.items) ? payload.items : [];
@@ -443,32 +530,33 @@ export const GlobalProvider = ({ children }) => {
         const alertKey = `due_${dueCount}_${items[0]?._id || 'x'}`;
         if (localStorage.getItem('last_due_alert_key') !== alertKey) {
           localStorage.setItem('last_due_alert_key', alertKey);
-          pushNotification(`${dueCount} recurring bill${dueCount > 1 ? 's are' : ' is'} due`, { type: 'warning' });
+          pushNotification(`${dueCount} recurring supplier payable${dueCount > 1 ? 's are' : ' is'} due`, { type: 'warning' });
         }
       }
       return true;
     } catch (err) {
       setRecurringAlerts({ dueCount: 0, items: [] });
-      return true;
+      setError(getApiErrorMessage(err, 'Error fetching recurring due alerts'));
+      return false;
     }
-  }, [pushNotification]);
+  }, [getApiErrorMessage, pushNotification]);
 
   const processRecurringDue = useCallback(async () => {
     try {
       setError(null);
-      const res = await api.post('/v1/process-recurring-due');
+      const res = await api.post('/v1/transactions/process-recurring-due');
       const createdCount = Number(res?.data?.createdCount || 0);
       if (createdCount > 0) {
-        pushNotification(`Auto-created ${createdCount} due recurring expense${createdCount > 1 ? 's' : ''}`, { type: 'success' });
+        pushNotification(`Auto-created ${createdCount} due recurring purchase${createdCount > 1 ? 's' : ''}`, { type: 'success' });
       }
-      await getExpenses();
+      await getTransactions();
       await getRecurringAlerts();
       return { success: true, data: res.data };
     } catch (err) {
       setError(getApiErrorMessage(err, 'Error processing recurring dues'));
       return { success: false, data: null };
     }
-  }, [getApiErrorMessage, getExpenses, getRecurringAlerts, pushNotification]);
+  }, [getApiErrorMessage, getTransactions, getRecurringAlerts, pushNotification]);
 
   const autoAllocateBudgets = useCallback(async ({ savingsTarget, income, apply = true } = {}) => {
     try {
@@ -487,7 +575,7 @@ export const GlobalProvider = ({ children }) => {
 
       const res = await api.post('/v1/budgets/auto-allocate', payload);
       await Promise.all([getCategories(), getCategorySummary()]);
-      pushNotification('Budgets auto-allocated from income and savings target', { type: 'success' });
+      pushNotification('Stock budgets auto-allocated from revenue and reserve target', { type: 'success' });
       return { success: true, data: res.data };
     } catch (err) {
       setError(getApiErrorMessage(err, 'Error auto-allocating budgets'));
@@ -556,6 +644,13 @@ export const GlobalProvider = ({ children }) => {
     try {
       const res = await api.get('/v1/categories');
       const existing = dedupeCategoriesByName(res.data);
+      setCategories(existing);
+      const role = String(user?.role || '').toLowerCase();
+      const canManageMedicines = role === 'admin' || role === 'pharmacist';
+      if (!canManageMedicines || !DEMO_SEED_ENABLED) {
+        return true;
+      }
+
       const existingNames = new Set(existing.map((c) => normalizeCategoryName(c.name)));
 
       for (const baseCategory of DEFAULT_CATEGORIES) {
@@ -567,8 +662,8 @@ export const GlobalProvider = ({ children }) => {
             const duplicateError =
               err?.response?.status === 400 &&
               (
-                err?.response?.data?.error === 'Category already exists' ||
-                err?.response?.data?.message === 'Category already exists'
+                err?.response?.data?.code === 'CATEGORY_EXISTS' ||
+                err?.apiError?.code === 'CATEGORY_EXISTS'
               );
             if (!duplicateError) {
               throw err;
@@ -584,50 +679,63 @@ export const GlobalProvider = ({ children }) => {
       setError(getApiErrorMessage(err, 'Error preparing categories'));
       return false;
     }
-  }, [getApiErrorMessage]);
+  }, [getApiErrorMessage, user?.role]);
 
   const getData = useCallback(async (options = {}) => {
+    // Central refresh used by all major PMS screens.
+    // This throttles repeated page-level fetches and prevents UI flicker.
     const force = Boolean(options.force);
     const now = Date.now();
-    const hasCachedData = expenses.length > 0 || categories.length > 0;
-    if (!force && hasCachedData && now - lastSyncAt < 20000) {
+    const hasCachedData =
+      dataSnapshotRef.current.transactions > 0 || dataSnapshotRef.current.categories > 0;
+    if (!force && hasCachedData && now - lastSyncAtRef.current < 20000) {
+      return true;
+    }
+    if (getDataInFlightRef.current) {
       return true;
     }
 
+    getDataInFlightRef.current = true;
     setLoading(true);
     setError(null);
-    const [expenseOk, categoryOk] = await Promise.all([
-      getExpenses(),
-      ensureDefaultCategories()
-    ]);
-    await Promise.all([
-      getCategorySummary(),
-      getGoals(),
-      getInsights(),
-      getRecurringAlerts()
-    ]);
-    setLastSyncAt(Date.now());
-    setLoading(false);
-    return expenseOk && categoryOk;
+    try {
+      const role = normalizeRole(user?.role);
+      const canManageTransactions = hasPermission(role, ACTIONS.TRANSACTIONS_MANAGE);
+      const [transactionOk, categoryOk] = await Promise.all([
+        canManageTransactions ? getTransactions() : Promise.resolve(true),
+        ensureDefaultCategories()
+      ]);
+      await Promise.all([
+        getCategorySummary(),
+        getGoals(),
+        canManageTransactions ? getInsights() : Promise.resolve(true),
+        canManageTransactions ? getRecurringAlerts() : Promise.resolve(true)
+      ]);
+      lastSyncAtRef.current = Date.now();
+      return transactionOk && categoryOk;
+    } finally {
+      getDataInFlightRef.current = false;
+      setLoading(false);
+    }
   }, [
-    categories.length,
     ensureDefaultCategories,
-    expenses.length,
     getCategorySummary,
-    getExpenses,
+    getTransactions,
     getGoals,
     getInsights,
     getRecurringAlerts,
-    lastSyncAt
+    user?.role
   ]);
 
   const contextValue = useMemo(() => ({
     user,
     setUser,
-    expenses,
-    historyItems,
-    historyPagination,
-    historyLoading,
+    transactions,
+    transactionItems,
+    setTransactions,
+    transactionHistoryItems,
+    transactionHistoryPagination,
+    transactionHistoryLoading,
     categories,
     categorySummary,
     goals,
@@ -648,13 +756,12 @@ export const GlobalProvider = ({ children }) => {
     getCurrentUser,
     updateProfile,
     updatePassword,
-    addExpense,
-    addTransaction,
-    getExpenses,
-    deleteExpense,
-    updateExpense,
-    getExpenseHistory,
-    generateRecurringExpense,
+    getTransactions,
+    getTransactionHistory,
+    createTransaction,
+    removeTransaction,
+    updateTransaction,
+    generateRecurringTransaction,
     addCategory,
     getCategories,
     getCategorySummary,
@@ -674,10 +781,12 @@ export const GlobalProvider = ({ children }) => {
     getData
   }), [
     user,
-    expenses,
-    historyItems,
-    historyPagination,
-    historyLoading,
+    transactions,
+    transactionItems,
+    setTransactions,
+    transactionHistoryItems,
+    transactionHistoryPagination,
+    transactionHistoryLoading,
     categories,
     categorySummary,
     goals,
@@ -697,13 +806,12 @@ export const GlobalProvider = ({ children }) => {
     getCurrentUser,
     updateProfile,
     updatePassword,
-    addExpense,
-    addTransaction,
-    getExpenses,
-    deleteExpense,
-    updateExpense,
-    getExpenseHistory,
-    generateRecurringExpense,
+    getTransactions,
+    getTransactionHistory,
+    createTransaction,
+    removeTransaction,
+    updateTransaction,
+    generateRecurringTransaction,
     addCategory,
     getCategories,
     getCategorySummary,

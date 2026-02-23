@@ -1,47 +1,122 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { FiBarChart2, FiBell, FiCreditCard, FiDollarSign, FiFileText, FiGrid, FiLayers } from 'react-icons/fi';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Drawer,
+  Dropdown,
+  Grid,
+  Input,
+  Layout,
+  List,
+  Menu,
+  Switch,
+  Tag,
+  Typography
+} from 'antd';
+import {
+  BarChartOutlined,
+  BellOutlined,
+  CreditCardOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  ShoppingOutlined,
+  SettingOutlined,
+  WarningOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  MoonOutlined,
+  SunOutlined,
+  UserOutlined,
+  TeamOutlined
+} from '@ant-design/icons';
 import { useGlobalContext } from '../context/globalContext';
+import { getInitials } from '../utils/avatar';
+import { ACTIONS, hasPermission, normalizeRole } from '../config/rbacPolicy';
+
+const getDefaultRouteForRole = (user) => {
+  const role = normalizeRole(user?.role);
+  if (hasPermission(role, ACTIONS.BILLING_ACCESS)) return '/billing';
+  if (hasPermission(role, ACTIONS.TRANSACTIONS_MANAGE)) return '/dashboard';
+  return '/profile';
+};
 
 const AppShell = ({ title, subtitle, children, rightPanel = null }) => {
+  const { Header, Sider, Content } = Layout;
+  const { Title, Text } = Typography;
+  const { useBreakpoint } = Grid;
+  const screens = useBreakpoint();
+  const isDesktop = Boolean(screens.lg);
+  const location = useLocation();
   const navigate = useNavigate();
-  const { user, expenses, notifications, markNotificationsRead, logoutUser } = useGlobalContext();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, transactions, notifications, markNotificationsRead, logoutUser } = useGlobalContext();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const menuRef = useRef(null);
+  const [globalLookup, setGlobalLookup] = useState('');
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem('theme_dark') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const notifRef = useRef(null);
   const navItems = useMemo(() => {
-    const base = [
-      { to: '/dashboard', label: 'Dashboard', icon: <FiGrid /> },
-      { to: '/transactions', label: 'Transactions', icon: <FiCreditCard /> },
-      { to: '/add', label: 'Add Expense', icon: <FiDollarSign /> },
-      { to: '/budget', label: 'Budget', icon: <FiBarChart2 /> },
-      { to: '/categories', label: 'Categories', icon: <FiLayers /> },
-      { to: '/reports', label: 'Reports', icon: <FiFileText /> }
-    ];
-    if (user?.role === 'admin') {
-      base.push({ to: '/admin', label: 'Admin', icon: <FiLayers /> });
+    const role = normalizeRole(user?.role);
+    const items = [];
+    if (hasPermission(role, ACTIONS.TRANSACTIONS_MANAGE)) {
+      items.push({ key: '/dashboard', to: '/dashboard', label: 'Dashboard', icon: <BarChartOutlined /> });
+      items.push({ key: '/sales-history', to: '/sales-history', label: 'Sales & Purchase History', icon: <CreditCardOutlined /> });
     }
-    return base;
+    if (hasPermission(role, ACTIONS.BILLING_ACCESS)) {
+      items.push({ key: '/billing', to: '/billing', label: 'Billing', icon: <DollarOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.MEDICINE_WRITE)) {
+      items.push({ key: '/medicine-master', to: '/medicine-master', label: 'Medicine Master', icon: <UserOutlined /> });
+      items.push({ key: '/inventory', to: '/inventory', label: 'Inventory & Batches', icon: <TeamOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.STOCK_MANAGE)) {
+      items.push({ key: '/purchases', to: '/purchases', label: 'Purchases', icon: <ShoppingOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.MEDICINE_VIEW)) {
+      items.push({ key: '/stock-alerts', to: '/stock-alerts', label: 'Expiry & Low Stock', icon: <WarningOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.REPORTS_VIEW_PROFIT)) {
+      items.push({ key: '/reports', to: '/reports', label: 'Profit Reports', icon: <FileTextOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.SETTINGS_MANAGE)) {
+      items.push({ key: '/settings', to: '/settings', label: 'Settings', icon: <SettingOutlined /> });
+    }
+    if (hasPermission(role, ACTIONS.ADMIN_USERS_MANAGE)) items.push({ key: '/admin', to: '/admin', label: 'Admin', icon: <TeamOutlined /> });
+    return items;
   }, [user?.role]);
+  const menuItems = useMemo(
+    () => navItems.map((item) => ({
+      key: item.key,
+      icon: item.icon,
+      label: <NavLink to={item.to}>{item.label}</NavLink>
+    })),
+    [navItems]
+  );
 
-  const initials = useMemo(() => {
-    const rawName = String(user?.name || '').trim();
-    if (!rawName) return 'U';
-    const parts = rawName.split(/\s+/).filter(Boolean);
-    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }, [user]);
+  const initials = useMemo(() => getInitials(user?.name || 'User'), [user?.name]);
+  const roleLabel = useMemo(() => {
+    const role = normalizeRole(user?.role);
+    if (!role) return 'user';
+    return role;
+  }, [user?.role]);
 
   const todayAlerts = useMemo(() => {
     const todayKey = new Date().toISOString().slice(0, 10);
-    return expenses.filter((item) => {
-      if ((item.type || 'expense') !== 'expense') return false;
+    return transactions.filter((item) => {
+      if ((item.type || 'outflow') === 'income') return false;
       const date = new Date(item.date);
       if (Number.isNaN(date.getTime())) return false;
       return date.toISOString().slice(0, 10) === todayKey;
     }).length;
-  }, [expenses]);
+  }, [transactions]);
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.read).length,
     [notifications]
@@ -50,124 +125,189 @@ const AppShell = ({ title, subtitle, children, rightPanel = null }) => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) setIsMenuOpen(false);
       if (notifRef.current && !notifRef.current.contains(event.target)) setIsNotifOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('sidebar_collapsed', String(collapsed));
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('theme-dark');
+    } else {
+      document.body.classList.remove('theme-dark');
+    }
+    localStorage.setItem('theme_dark', String(isDarkMode));
+  }, [isDarkMode]);
+
+  const onGlobalLookup = (value) => {
+    const query = String(value || '').trim();
+    const role = normalizeRole(user?.role);
+    if (!query) return;
+    if (hasPermission(role, ACTIONS.MEDICINE_VIEW)) {
+      navigate(`/inventory?q=${encodeURIComponent(query)}`);
+      return;
+    }
+    if (hasPermission(role, ACTIONS.BILLING_ACCESS)) {
+      navigate('/billing');
+      return;
+    }
+    navigate(getDefaultRouteForRole(user));
+  };
+
   return (
-    <div className="dashboard-ui-shell">
-      <aside className="dashboard-sidebar">
-        <div className="dashboard-brand">EXPENSE TRACKER</div>
-        <nav className="dashboard-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-
-      <section className="dashboard-main">
-        <header className="dashboard-topbar">
-          <div>
-            <h1>{title}</h1>
-            {subtitle ? <p>{subtitle}</p> : null}
-          </div>
-          <div className="dashboard-topbar-right">
-            <div className="notif-chip" title="Today alerts">
-              <span className="notif-dot" />
-              {todayAlerts}
-            </div>
-            <div className="profile-menu-wrap" ref={notifRef}>
-              <button
-                type="button"
-                className="profile-menu-trigger bell-trigger"
-                onClick={() => {
-                  setIsNotifOpen((prev) => {
-                    const next = !prev;
-                    if (next) markNotificationsRead();
-                    return next;
-                  });
-                }}
-                aria-haspopup="menu"
-                aria-expanded={isNotifOpen}
-                title="Notifications"
-              >
-                <FiBell />
-                {unreadCount > 0 ? <span className="bell-badge">{unreadCount > 9 ? '9+' : unreadCount}</span> : null}
-              </button>
-              {isNotifOpen ? (
-                <div className="profile-dropdown notif-dropdown" role="menu">
-                  <div className="notif-dropdown-head">Notifications</div>
-                  {latestNotifications.length ? latestNotifications.map((item) => (
-                    <div key={item.id} className="notif-item">
-                      <p>{item.message}</p>
-                      <small>{new Date(item.createdAt).toLocaleString()}</small>
-                    </div>
-                  )) : <div className="notif-item empty">No notifications yet</div>}
-                </div>
-              ) : null}
-            </div>
-            <div className="profile-menu-wrap" ref={menuRef}>
-              <button
-                type="button"
-                className="profile-menu-trigger"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-                aria-haspopup="menu"
-                aria-expanded={isMenuOpen}
-              >
-                <div className="user-chip">
-                  <strong>{initials}</strong>
-                  <div>
-                    <span>{user?.name || 'User'}</span>
-                    <small>User</small>
-                  </div>
-                </div>
-              </button>
-
-              {isMenuOpen ? (
-                <div className="profile-dropdown" role="menu">
-                  <button
-                    type="button"
-                    className="profile-dropdown-item"
-                    onClick={() => {
-                      navigate('/profile');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-dropdown-item danger"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      logoutUser();
-                    }}
-                  >
-                    Log Out
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </header>
-
-        <div className={`dashboard-content-grid ${rightPanel ? 'with-right-panel' : ''}`}>
-          <main>{children}</main>
-          {rightPanel ? <aside>{rightPanel}</aside> : null}
+    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
+      <Sider
+        breakpoint="lg"
+        collapsedWidth="0"
+        collapsed={!isDesktop ? true : collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+        style={{ background: '#0f172a', position: 'sticky', top: 0, left: 0, height: '100vh' }}
+      >
+        <div style={{ color: '#fff', fontWeight: 700, padding: '16px', textAlign: 'center' }}>
+          PHARMACY MANAGEMENT
         </div>
-      </section>
-    </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+        />
+      </Sider>
+      <Drawer
+        placement="left"
+        open={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        bodyStyle={{ padding: 0 }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      </Drawer>
+
+      <Layout>
+        <Header
+          className="appshell-header"
+          style={{
+            background: '#fff',
+            padding: '10px 14px',
+            height: 'auto',
+            minHeight: 64,
+            lineHeight: 1.2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            position: 'sticky',
+            top: 0,
+            zIndex: 20
+          }}
+        >
+          <div className="appshell-header-left" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            {isDesktop ? (
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed((prev) => !prev)}
+              />
+            ) : (
+              <Button type="text" icon={<MenuUnfoldOutlined />} onClick={() => setIsMobileSidebarOpen(true)} />
+            )}
+            <div style={{ minWidth: 0 }}>
+              <Title level={4} style={{ margin: 0, lineHeight: 1.2 }}>{title}</Title>
+              {subtitle ? <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>{subtitle}</Text> : null}
+            </div>
+          </div>
+
+          <div className="appshell-header-center">
+            <Input.Search
+              allowClear
+              value={globalLookup}
+              onChange={(e) => setGlobalLookup(e.target.value)}
+              onSearch={onGlobalLookup}
+              placeholder="Global search: medicine / SKU / patient"
+              className="appshell-global-search"
+            />
+          </div>
+
+          <div className="appshell-header-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Badge count={todayAlerts} color="#f5222d" />
+            <Switch
+              checked={isDarkMode}
+              checkedChildren={<MoonOutlined />}
+              unCheckedChildren={<SunOutlined />}
+              onChange={(checked) => setIsDarkMode(checked)}
+            />
+
+            <Dropdown
+              open={isNotifOpen}
+              onOpenChange={(next) => {
+                setIsNotifOpen(next);
+                if (next) markNotificationsRead();
+              }}
+              dropdownRender={() => (
+                <div ref={notifRef} style={{ width: 320, maxHeight: 360, overflow: 'auto', background: '#fff', border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                  <div style={{ padding: '10px 12px', fontWeight: 600 }}>Notifications</div>
+                  <List
+                    size="small"
+                    dataSource={latestNotifications}
+                    locale={{ emptyText: 'No notifications yet' }}
+                    renderItem={(item) => (
+                      <List.Item style={{ padding: '8px 12px' }}>
+                        <List.Item.Meta
+                          title={<span>{item.message}</span>}
+                          description={new Date(item.createdAt).toLocaleString()}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </div>
+              )}
+              trigger={['click']}
+            >
+              <Badge count={unreadCount} size="small">
+                <Button type="text" icon={<BellOutlined />} />
+              </Badge>
+            </Dropdown>
+
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'profile', label: 'Profile', onClick: () => navigate('/profile') },
+                  { key: 'logout', label: 'Log Out', onClick: () => logoutUser() }
+                ]
+              }}
+              trigger={['click']}
+            >
+              <Button type="text" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Avatar>{initials || <UserOutlined />}</Avatar>
+                {isDesktop ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span>{user?.name || 'User'}</span>
+                    <Tag color="blue" style={{ marginRight: 0, textTransform: 'uppercase' }}>{roleLabel}</Tag>
+                  </span>
+                ) : null}
+              </Button>
+            </Dropdown>
+          </div>
+        </Header>
+
+        <Content style={{ margin: 16, overflow: 'auto', minHeight: 0 }}>
+          <div className={`dashboard-content-grid ${rightPanel ? 'with-right-panel' : ''}`}>
+            <main>{children}</main>
+            {rightPanel ? <aside>{rightPanel}</aside> : null}
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 
 export default AppShell;
+

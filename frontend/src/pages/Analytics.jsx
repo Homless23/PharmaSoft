@@ -1,3 +1,3 @@
-import Budget from './Budget';
+import Reports from './Reports';
 
-export default Budget;
+export default Reports;

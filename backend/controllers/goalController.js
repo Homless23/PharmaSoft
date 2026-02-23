@@ -1,4 +1,12 @@
 const Goal = require('../models/Goal');
+const { sendError } = require('../utils/apiResponse');
+const getInventoryOwnerId = (req) => String(req.user?.ownerAdmin || req.user?.id || req.user?._id || '');
+const tenantGoalUserScope = (req) => {
+    const ownerId = getInventoryOwnerId(req);
+    const actorId = String(req.user?.id || req.user?._id || '');
+    if (ownerId === actorId) return [ownerId];
+    return [ownerId, actorId];
+};
 
 const parseDateOrNull = (value) => {
     if (!value) return null;
@@ -21,11 +29,11 @@ const normalizeGoal = (goalDoc) => {
 
 exports.getGoals = async (req, res) => {
     try {
-        const goals = await Goal.find({ user: req.user.id }).sort({ createdAt: -1 });
+        const goals = await Goal.find({ user: { $in: tenantGoalUserScope(req) } }).sort({ createdAt: -1 });
         return res.json(goals.map(normalizeGoal));
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'GOALS_FETCH_ERROR');
     }
 };
 
@@ -38,14 +46,14 @@ exports.createGoal = async (req, res) => {
 
     try {
         if (!cleanedTitle || !Number.isFinite(target) || target <= 0) {
-            return res.status(400).json({ message: 'Valid title and target amount are required' });
+            return sendError(res, 400, 'Valid title and target amount are required', 'GOAL_CREATE_FIELDS_INVALID');
         }
         if (!Number.isFinite(current) || current < 0) {
-            return res.status(400).json({ message: 'Current amount must be 0 or higher' });
+            return sendError(res, 400, 'Current amount must be 0 or higher', 'GOAL_CREATE_CURRENT_INVALID');
         }
 
         const goal = await Goal.create({
-            user: req.user.id,
+            user: getInventoryOwnerId(req),
             title: cleanedTitle,
             targetAmount: target,
             currentAmount: current,
@@ -55,7 +63,7 @@ exports.createGoal = async (req, res) => {
         return res.status(201).json(normalizeGoal(goal));
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'GOAL_CREATE_ERROR');
     }
 };
 
@@ -64,26 +72,25 @@ exports.updateGoal = async (req, res) => {
     const { title, targetAmount, currentAmount, deadline, status } = req.body;
 
     try {
-        const goal = await Goal.findById(id);
-        if (!goal) return res.status(404).json({ message: 'Goal not found' });
-        if (goal.user.toString() !== req.user.id) return res.status(401).json({ message: 'User not authorized' });
+        const goal = await Goal.findOne({ _id: id, user: { $in: tenantGoalUserScope(req) } });
+        if (!goal) return sendError(res, 404, 'Goal not found', 'GOAL_NOT_FOUND');
 
         if (typeof title === 'string') {
             const cleanedTitle = title.trim();
-            if (!cleanedTitle) return res.status(400).json({ message: 'Title cannot be empty' });
+            if (!cleanedTitle) return sendError(res, 400, 'Title cannot be empty', 'GOAL_TITLE_INVALID');
             goal.title = cleanedTitle;
         }
         if (typeof targetAmount !== 'undefined') {
             const target = Number(targetAmount);
             if (!Number.isFinite(target) || target <= 0) {
-                return res.status(400).json({ message: 'Target amount must be greater than 0' });
+                return sendError(res, 400, 'Target amount must be greater than 0', 'GOAL_TARGET_INVALID');
             }
             goal.targetAmount = target;
         }
         if (typeof currentAmount !== 'undefined') {
             const current = Number(currentAmount);
             if (!Number.isFinite(current) || current < 0) {
-                return res.status(400).json({ message: 'Current amount must be 0 or higher' });
+                return sendError(res, 400, 'Current amount must be 0 or higher', 'GOAL_CURRENT_INVALID');
             }
             goal.currentAmount = current;
         }
@@ -102,7 +109,7 @@ exports.updateGoal = async (req, res) => {
         return res.json(normalizeGoal(goal));
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'GOAL_UPDATE_ERROR');
     }
 };
 
@@ -110,14 +117,13 @@ exports.deleteGoal = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const goal = await Goal.findById(id);
-        if (!goal) return res.status(404).json({ message: 'Goal not found' });
-        if (goal.user.toString() !== req.user.id) return res.status(401).json({ message: 'User not authorized' });
+        const goal = await Goal.findOne({ _id: id, user: { $in: tenantGoalUserScope(req) } });
+        if (!goal) return sendError(res, 404, 'Goal not found', 'GOAL_NOT_FOUND');
 
-        await Goal.findByIdAndDelete(id);
+        await Goal.deleteOne({ _id: id, user: { $in: tenantGoalUserScope(req) } });
         return res.json({ message: 'Goal deleted' });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'GOAL_DELETE_ERROR');
     }
 };

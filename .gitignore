@@ -1,13 +1,9 @@
 node_modules/
-<<<<<<< HEAD
 backend/node_modules/
 frontend/node_modules/
-.env
-=======
-.env
 client/node_modules/
 server/node_modules/
+.env
 .DS_Store
 dist/
 build/
->>>>>>> c43afb3a27fa05e1b6bdf5d6edcc5217287bc939

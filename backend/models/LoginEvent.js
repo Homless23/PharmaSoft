@@ -18,7 +18,7 @@ const LoginEventSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin', 'unknown'],
+        enum: ['user', 'admin', 'pharmacist', 'cashier', 'unknown'],
         default: 'unknown'
     },
     ip: {

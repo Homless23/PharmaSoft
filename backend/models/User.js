@@ -19,12 +19,26 @@ const UserSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['admin', 'pharmacist', 'cashier', 'user'],
         default: 'user'
+    },
+    ownerAdmin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+        index: true
+    },
+    avatarDataUrl: {
+        type: String,
+        default: ''
     },
     lastLoginAt: {
         type: Date,
         default: null
+    },
+    tokenVersion: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true });
 

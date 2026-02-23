@@ -1,8 +1,22 @@
-const Expense = require('../models/Expense');
+const Transaction = require('../models/Transaction');
 const Category = require('../models/Category');
 const Goal = require('../models/Goal');
+const { sendError } = require('../utils/apiResponse');
+const getInventoryOwnerId = (req) => String(req.user?.ownerAdmin || req.user?.id || req.user?._id || '');
+const tenantGoalUserScope = (req) => {
+    const ownerId = getInventoryOwnerId(req);
+    const actorId = String(req.user?.id || req.user?._id || '');
+    if (ownerId === actorId) return [ownerId];
+    return [ownerId, actorId];
+};
 
-const INCOME_CATEGORY_NAMES = new Set(['salary', 'freelance', 'investments', 'investment', 'bonus', 'other income']);
+const REVENUE_CATEGORY_NAMES = new Set([
+    'retail sales',
+    'online orders',
+    'insurance claims',
+    'clinic supplies',
+    'wholesale'
+]);
 const normalizeCategoryKey = (value) => String(value || '').trim().toLowerCase();
 const HISTORY_WEIGHT = 0.7;
 const BASELINE_WEIGHT = 0.3;
@@ -27,17 +41,17 @@ exports.autoAllocateBudgets = async (req, res) => {
     const shouldApply = apply !== false;
 
     try {
-        const userId = req.user.id;
+        const userId = getInventoryOwnerId(req);
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const windowStart = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
 
-        const [monthIncomes, recentIncomes, windowExpenses, categories, goals] = await Promise.all([
-            Expense.find({ user: userId, type: 'income', date: { $gte: monthStart } }).select('amount'),
-            Expense.find({ user: userId, type: 'income', date: { $gte: windowStart } }).select('amount category'),
-            Expense.find({ user: userId, type: { $ne: 'income' }, date: { $gte: windowStart } }).select('amount category'),
+        const [monthIncomes, recentIncomes, recentTransactions, categories, goals] = await Promise.all([
+            Transaction.find({ user: userId, type: 'income', date: { $gte: monthStart } }).select('amount'),
+            Transaction.find({ user: userId, type: 'income', date: { $gte: windowStart } }).select('amount category'),
+            Transaction.find({ user: userId, type: { $ne: 'income' }, date: { $gte: windowStart } }).select('amount category'),
             Category.find({ user: userId, active: { $ne: false } }),
-            Goal.find({ user: userId, status: { $in: ['active', 'paused'] } }).select('targetAmount currentAmount deadline')
+            Goal.find({ user: { $in: tenantGoalUserScope(req) }, status: { $in: ['active', 'paused'] } }).select('targetAmount currentAmount deadline')
         ]);
 
         const monthIncomeTotal = monthIncomes.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -60,14 +74,14 @@ exports.autoAllocateBudgets = async (req, res) => {
         const finalSavingsTarget = providedSavings !== null ? providedSavings : derivedSavingsTarget;
         const spendableBudget = Math.max(monthlyIncome - finalSavingsTarget, 0);
 
-        const expenseWeights = {};
-        let totalWindowExpense = 0;
-        windowExpenses.forEach((item) => {
+        const transactionWeights = {};
+        let totalWindowSpend = 0;
+        recentTransactions.forEach((item) => {
             const category = normalizeCategoryKey(item.category);
             const amount = Number(item.amount || 0);
             if (!category || !Number.isFinite(amount) || amount <= 0) return;
-            expenseWeights[category] = (expenseWeights[category] || 0) + amount;
-            totalWindowExpense += amount;
+            transactionWeights[category] = (transactionWeights[category] || 0) + amount;
+            totalWindowSpend += amount;
         });
 
         const incomeCategoryNames = new Set(
@@ -79,22 +93,22 @@ exports.autoAllocateBudgets = async (req, res) => {
         const budgetCategories = categories.filter((category) => {
             const name = normalizeCategoryKey(category.name);
             if (!name) return false;
-            if (INCOME_CATEGORY_NAMES.has(name)) return false;
+            if (REVENUE_CATEGORY_NAMES.has(name)) return false;
             if (incomeCategoryNames.has(name)) return false;
             return true;
         });
 
-        const includedExpenseTotal = budgetCategories.reduce((sum, category) => {
+        const includedSpendTotal = budgetCategories.reduce((sum, category) => {
             const key = normalizeCategoryKey(category.name);
-            return sum + Number(expenseWeights[key] || 0);
+            return sum + Number(transactionWeights[key] || 0);
         }, 0);
 
         const defaultWeight = budgetCategories.length > 0 ? 1 / budgetCategories.length : 0;
         const suggestions = budgetCategories.map((category) => {
             const key = normalizeCategoryKey(category.name);
-            const matchedWeight = Number(expenseWeights[key] || 0);
-            const historicalWeight = includedExpenseTotal > 0
-                ? matchedWeight / includedExpenseTotal
+            const matchedWeight = Number(transactionWeights[key] || 0);
+            const historicalWeight = includedSpendTotal > 0
+                ? matchedWeight / includedSpendTotal
                 : defaultWeight;
             const baseWeight = (historicalWeight * HISTORY_WEIGHT) + (defaultWeight * BASELINE_WEIGHT);
             const suggested = Math.round(spendableBudget * baseWeight);
@@ -124,6 +138,7 @@ exports.autoAllocateBudgets = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: 'Server Error' });
+        return sendError(res, 500, 'Server Error', 'BUDGET_AUTO_ALLOCATE_ERROR');
     }
 };
+

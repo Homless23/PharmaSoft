@@ -4,10 +4,21 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
-"scripts": {
+  "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "cleanup:categories": "node scripts/cleanupCategoryDuplicates.js"
+    "cleanup:categories": "node scripts/cleanupCategoryDuplicates.js",
+    "seed:transactions": "node scripts/seedRandomTransactions.js",
+    "backfill:owner-admin": "node scripts/backfillOwnerAdmin.js",
+    "migrate:tenant-ownership": "node scripts/migrateTenantOwnership.js",
+    "smoke:billing": "node scripts/smokeBillingFlow.js",
+    "audit:consistency": "node scripts/auditConsistencyReport.js",
+    "backup:drill": "node scripts/backupDrillSnapshots.js",
+    "backup:snapshot-now": "node scripts/runBackupSnapshotNow.js",
+    "compliance:report": "node scripts/complianceReadinessReport.js",
+    "audit:backfill-bill-finalize": "node scripts/backfillBillFinalizeAudit.js",
+    "migrate:legacy-invoices-ird": "node scripts/migrateLegacyInvoicesToIrd.js",
+    "ops:health-check": "node ../scripts/opsHealthCheck.js"
   },
   "keywords": [],
   "author": "",

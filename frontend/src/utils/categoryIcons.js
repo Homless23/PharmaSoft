@@ -17,6 +17,16 @@ const iconStyle = { fontSize: '1rem' };
 
 const CATEGORY_ICON_MAP = {
   Food: <FiPackage style={iconStyle} />,
+  'Medicine Procurement': <FiPackage style={iconStyle} />,
+  'Supplier Payments': <FiDollarSign style={iconStyle} />,
+  Utilities: <FiHome style={iconStyle} />,
+  'Staff Salaries': <FiBriefcase style={iconStyle} />,
+  Equipment: <FiTool style={iconStyle} />,
+  'Retail Sales': <FiDollarSign style={iconStyle} />,
+  'Online Orders': <FiTrendingUp style={iconStyle} />,
+  'Insurance Claims': <FiDollarSign style={iconStyle} />,
+  'Clinic Supplies': <FiBriefcase style={iconStyle} />,
+  Wholesale: <FiTruck style={iconStyle} />,
   Transport: <FiTruck style={iconStyle} />,
   Entertainment: <FiFilm style={iconStyle} />,
   Bills: <FiHome style={iconStyle} />,
@@ -36,9 +46,11 @@ const CATEGORY_ICON_MAP = {
   Other: <FiPackage style={iconStyle} />
 };
 
-export const getCategoryIcon = (category, type = 'expense') => {
+export const getCategoryIcon = (category, type = 'outflow') => {
   if (type === 'income') {
     return <FiDollarSign style={iconStyle} />;
   }
   return CATEGORY_ICON_MAP[category] || <FiPackage style={iconStyle} />;
 };
+
+

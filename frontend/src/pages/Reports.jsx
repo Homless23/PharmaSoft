@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Alert, Button, Card, DatePicker, Select, Space, Statistic, Typography } from 'antd';
+import dayjs from 'dayjs';
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
+  Legend,
   PolarAngleAxis,
   PolarGrid,
   Radar,
@@ -13,36 +17,62 @@ import {
   YAxis
 } from 'recharts';
 import AppShell from '../components/AppShell';
+import ChartCard from '../components/ui/ChartCard';
+import EmptyState from '../components/ui/EmptyState';
 import { useGlobalContext } from '../context/globalContext';
-import './DashboardUI.css';
-
+import { exportRowsToPDF, exportTableToXlsx } from '../utils/export';
 const Reports = () => {
-  const { loading, expenses, categories, getData } = useGlobalContext();
+  const { Title, Text } = Typography;
+  const { loading, transactions, categories, getData } = useGlobalContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const categoryFilter = searchParams.get('category') || '';
 
   useEffect(() => {
     getData();
   }, [getData]);
 
-  const expenseItems = useMemo(() => {
-    const onlyExpenses = expenses.filter((item) => (item.type || 'expense') === 'expense');
-    return onlyExpenses.filter((item) => {
+  const outflowItems = useMemo(() => {
+    const onlyOutflows = transactions.filter((item) => (item.type || 'outflow') !== 'income');
+    return onlyOutflows.filter((item) => {
       const date = new Date(item.date);
       if (Number.isNaN(date.getTime())) return false;
       const key = date.toISOString().slice(0, 10);
       if (startDate && key < startDate) return false;
       if (endDate && key > endDate) return false;
+      if (categoryFilter && String(item.category || '') !== categoryFilter) return false;
       return true;
     });
-  }, [endDate, expenses, startDate]);
+  }, [categoryFilter, endDate, transactions, startDate]);
+  const incomeItems = useMemo(() => {
+    return transactions
+      .filter((item) => (item.type || 'outflow') === 'income')
+      .filter((item) => {
+        const date = new Date(item.date);
+        if (Number.isNaN(date.getTime())) return false;
+        const key = date.toISOString().slice(0, 10);
+        if (startDate && key < startDate) return false;
+        if (endDate && key > endDate) return false;
+        return true;
+      });
+  }, [endDate, transactions, startDate]);
+
+  const categoryOptions = useMemo(() => {
+    const allNames = [
+      ...categories.map((item) => String(item.name || '').trim()),
+      ...outflowItems.map((item) => String(item.category || '').trim())
+    ].filter(Boolean);
+    return [...new Set(allNames)].sort((a, b) => a.localeCompare(b));
+  }, [categories, outflowItems]);
 
   const thisMonthDailyTrend = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const byDay = {};
-    expenseItems.forEach((item) => {
+
+    outflowItems.forEach((item) => {
       const date = new Date(item.date);
       if (Number.isNaN(date.getTime())) return;
       if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) return;
@@ -53,44 +83,67 @@ const Reports = () => {
     return Object.keys(byDay)
       .sort((a, b) => Number(a) - Number(b))
       .map((day) => ({ label: day, amount: byDay[day] }));
-  }, [expenseItems]);
+  }, [outflowItems]);
 
   const monthlyTrend = useMemo(() => {
     const byMonth = {};
-    expenseItems.forEach((item) => {
+    outflowItems.forEach((item) => {
       const date = new Date(item.date);
       if (Number.isNaN(date.getTime())) return;
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       byMonth[key] = (byMonth[key] || 0) + Number(item.amount || 0);
     });
     return Object.keys(byMonth).sort().slice(-8).map((key) => ({ month: key, amount: byMonth[key] }));
-  }, [expenseItems]);
+  }, [outflowItems]);
 
   const categoryData = useMemo(() => {
     return categories.map((category) => {
-      const spent = expenseItems
+      const spent = outflowItems
         .filter((item) => item.category === category.name)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      return { name: category.name, spent, budget: Number(category.budget || 0), allocation: Number(category.budget || 0) };
+      return {
+        name: category.name,
+        spent,
+        budget: Number(category.budget || 0),
+        allocation: Number(category.budget || 0)
+      };
     });
-  }, [categories, expenseItems]);
+  }, [categories, outflowItems]);
+
+  const radarData = useMemo(() => {
+    const incomeLike = new Set(['retail sales', 'online orders', 'insurance claims', 'clinic supplies', 'wholesale']);
+    return categoryData
+      .filter((item) => Number(item.allocation || 0) > 0)
+      .filter((item) => !incomeLike.has(String(item.name || '').toLowerCase()))
+      .sort((a, b) => Number(b.allocation || 0) - Number(a.allocation || 0))
+      .slice(0, 7);
+  }, [categoryData]);
 
   const totals = useMemo(() => {
     const todayKey = new Date().toISOString().slice(0, 10);
     const totalBudget = categoryData.reduce((sum, item) => sum + Number(item.budget || 0), 0);
-    const totalExpenditure = expenseItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const expenditureToday = expenseItems.reduce((sum, item) => {
+    const totalOutflow = outflowItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalRevenue = incomeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const grossProfit = totalRevenue - totalOutflow;
+    const outflowToday = outflowItems.reduce((sum, item) => {
       const key = new Date(item.date).toISOString().slice(0, 10);
       return key === todayKey ? sum + Number(item.amount || 0) : sum;
     }, 0);
-    const totalBudgetAllocated = totalBudget;
-    return { totalBudget, totalBudgetAllocated, totalExpenditure, expenditureToday };
-  }, [categoryData, expenseItems]);
+    return {
+      totalBudget,
+      totalBudgetAllocated: totalBudget,
+      totalOutflow,
+      outflowToday,
+      totalRevenue,
+      grossProfit
+    };
+  }, [categoryData, outflowItems, incomeItems]);
 
   const categoriesToday = useMemo(() => {
     const todayKey = new Date().toISOString().slice(0, 10);
     const spentMap = {};
-    expenseItems.forEach((item) => {
+
+    outflowItems.forEach((item) => {
       const key = new Date(item.date).toISOString().slice(0, 10);
       if (key !== todayKey) return;
       spentMap[item.category] = (spentMap[item.category] || 0) + Number(item.amount || 0);
@@ -105,130 +158,173 @@ const Reports = () => {
       }))
       .sort((a, b) => b.spent - a.spent)
       .slice(0, 6);
-  }, [categoryData, expenseItems]);
+  }, [categoryData, outflowItems]);
 
-  const exportFiltered = () => {
+  const exportFilteredXlsx = () => {
     const header = ['Date', 'Title', 'Category', 'Amount'];
-    const rows = expenseItems.map((item) => [
+    const rows = outflowItems.map((item) => [
       new Date(item.date).toISOString().slice(0, 10),
       item.title || '',
       item.category || '',
       Number(item.amount || 0)
     ]);
-    const csv = [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `reports_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    exportTableToXlsx({
+      headers: header,
+      rows,
+      filename: `reports_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheetName: 'Reports'
+    });
+  };
+
+  const exportFilteredPdf = () => {
+    const header = ['Date', 'Title', 'Category', 'Amount'];
+    const rows = outflowItems.map((item) => [
+      new Date(item.date).toISOString().slice(0, 10),
+      String(item.title || ''),
+      String(item.category || ''),
+      `Rs.${Math.round(Number(item.amount || 0)).toLocaleString()}`
+    ]);
+    exportRowsToPDF({
+      title: 'Pharmacy Reports',
+      headers: header,
+      rows,
+      filename: `reports_${new Date().toISOString().slice(0, 10)}.pdf`
+    });
   };
 
   return (
     <AppShell
       title="Reports"
-      subtitle="Monthly trend and budget insights"
+      subtitle="Monthly pharmacy trends, procurement, and profit insights"
     >
-      {loading ? <div className="inline-loading">Refreshing reports...</div> : null}
+      {loading ? <Alert style={{ marginBottom: 16 }} type="info" showIcon message="Refreshing pharmacy reports..." /> : null}
       <section className="reports-layout">
-        <div className="ui-card reports-main-card">
+        <Card className="reports-main-card fade-in">
           <div className="reports-toolbar">
-            <h3>Reports</h3>
-            <div className="reports-filters">
-              <label>
-                Start date
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </label>
-              <label>
-                End date
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </label>
-              <button className="btn-primary" onClick={exportFiltered}>Export</button>
-            </div>
+            <Title level={3} style={{ marginBottom: 0 }}>Reports</Title>
+            <Space wrap className="reports-filters">
+              <DatePicker
+                placeholder="Start date"
+                value={startDate ? dayjs(startDate) : null}
+                onChange={(value) => setStartDate(value ? value.format('YYYY-MM-DD') : '')}
+              />
+              <DatePicker
+                placeholder="End date"
+                value={endDate ? dayjs(endDate) : null}
+                onChange={(value) => setEndDate(value ? value.format('YYYY-MM-DD') : '')}
+              />
+              <Select
+                style={{ width: 220 }}
+                value={categoryFilter || undefined}
+                placeholder="All Categories"
+                allowClear
+                options={categoryOptions.map((name) => ({ value: name, label: name }))}
+                onChange={(value) => {
+                  const next = new URLSearchParams(searchParams);
+                  if (value) next.set('category', value);
+                  else next.delete('category');
+                  setSearchParams(next);
+                }}
+              />
+              <Button type="primary" onClick={exportFilteredXlsx}>Export Excel</Button>
+              <Button onClick={exportFilteredPdf}>Export PDF</Button>
+            </Space>
           </div>
 
           <div className="reports-chart-grid">
-            <div className="reports-chart-item">
-              <h4>Expenses Today</h4>
+            <ChartCard title="Purchases Today">
               <div className="reports-chart-wrap">
                 <ResponsiveContainer>
-                  <LineChart data={thisMonthDailyTrend}>
+                  <AreaChart data={thisMonthDailyTrend}>
                     <CartesianGrid strokeDasharray="2 2" />
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Line dataKey="amount" stroke="#6b6eff" strokeWidth={2} dot={false} />
-                  </LineChart>
+                    <Tooltip formatter={(value) => [`Rs.${Math.round(Number(value || 0)).toLocaleString()}`, 'Amount']} />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#6366f1"
+                      fill="#c7d2fe"
+                      fillOpacity={0.6}
+                      strokeWidth={2.2}
+                      isAnimationActive
+                      animationDuration={700}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </ChartCard>
 
-            <div className="reports-chart-item">
-              <h4>Expenses Monthly</h4>
+            <ChartCard title="Purchases Monthly">
               <div className="reports-chart-wrap">
                 <ResponsiveContainer>
-                  <LineChart data={monthlyTrend}>
+                  <AreaChart data={monthlyTrend}>
                     <CartesianGrid strokeDasharray="2 2" />
                     <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Line dataKey="amount" stroke="#6b6eff" strokeWidth={2} dot={false} />
-                  </LineChart>
+                    <Tooltip formatter={(value) => [`Rs.${Math.round(Number(value || 0)).toLocaleString()}`, 'Amount']} />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#4f46e5"
+                      fill="#c4b5fd"
+                      fillOpacity={0.48}
+                      strokeWidth={2.2}
+                      isAnimationActive
+                      animationDuration={760}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </ChartCard>
           </div>
 
           <div className="reports-radar-block">
-            <h4>Budget Allocations</h4>
+            <h4>Stock Budget Allocations</h4>
             <div className="reports-radar-wrap">
-              <ResponsiveContainer>
-                <RadarChart data={categoryData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Radar dataKey="allocation" stroke="#6b6eff" fill="#6b6eff" fillOpacity={0.35} />
-                </RadarChart>
-              </ResponsiveContainer>
+              {radarData.length ? (
+                <ResponsiveContainer>
+                  <RadarChart data={radarData} outerRadius="78%">
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(value) => [`Rs.${Math.round(Number(value || 0)).toLocaleString()}`, 'Allocation']} />
+                    <Radar dataKey="allocation" stroke="#6b6eff" fill="#6b6eff" fillOpacity={0.32} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState title="No allocation data" description="Set category budgets to view radar allocation." />
+              )}
             </div>
           </div>
-        </div>
+        </Card>
 
         <aside className="reports-side-panel">
-          <div className="reports-stat-card">
-            <span>Total Budget</span>
-            <strong>Rs.{Math.round(totals.totalBudget).toLocaleString()}</strong>
-          </div>
-          <div className="reports-stat-card">
-            <span>Total Budget Allocated</span>
-            <strong>Rs.{Math.round(totals.totalBudgetAllocated).toLocaleString()}</strong>
-          </div>
-          <div className="reports-stat-card">
-            <span>Total Expenditure</span>
-            <strong>Rs.{Math.round(totals.totalExpenditure).toLocaleString()}</strong>
-          </div>
-          <div className="reports-stat-card">
-            <span>Expenditure Today</span>
-            <strong>Rs.{Math.round(totals.expenditureToday).toLocaleString()}</strong>
-          </div>
+          <Card><Statistic title="Total Budget" value={`Rs.${Math.round(totals.totalBudget).toLocaleString()}`} /></Card>
+          <Card><Statistic title="Total Budget Allocated" value={`Rs.${Math.round(totals.totalBudgetAllocated).toLocaleString()}`} /></Card>
+          <Card><Statistic title="Total Procurement" value={`Rs.${Math.round(totals.totalOutflow).toLocaleString()}`} /></Card>
+          <Card><Statistic title="Total Revenue" value={`Rs.${Math.round(totals.totalRevenue).toLocaleString()}`} /></Card>
+          <Card><Statistic title="Gross Profit" value={`Rs.${Math.round(totals.grossProfit).toLocaleString()}`} /></Card>
+          <Card><Statistic title="Procurement Today" value={`Rs.${Math.round(totals.outflowToday).toLocaleString()}`} /></Card>
 
-          <div className="ui-card reports-categories-today">
-            <h4>Categories Today</h4>
+          <Card className="reports-categories-today">
+            <Title level={4}>Procurement Categories Today</Title>
             <div className="reports-side-cats-grid">
               {categoriesToday.length ? categoriesToday.map((item) => (
                 <div key={item.name} className="reports-mini-cat">
                   <strong>{item.name}</strong>
-                  <small>Budget: {Math.round(item.budget).toLocaleString()}</small>
-                  <small>Expense: {Math.round(item.spent).toLocaleString()}</small>
+                  <Text type="secondary">Budget: {Math.round(item.budget).toLocaleString()}</Text>
+                  <Text type="secondary">Purchased: {Math.round(item.spent).toLocaleString()}</Text>
                 </div>
-              )) : <p className="empty-hint">No expenses recorded for today.</p>}
+              )) : (
+                <EmptyState
+                  title="No purchases today"
+                  description="Today-wise category breakdown will appear once you add pharmacy purchases."
+                />
+              )}
             </div>
-          </div>
+          </Card>
         </aside>
       </section>
     </AppShell>
@@ -236,3 +332,5 @@ const Reports = () => {
 };
 
 export default Reports;
+
+
